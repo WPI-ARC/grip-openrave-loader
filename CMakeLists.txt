@@ -1,3 +1,4 @@
+
 cmake_minimum_required (VERSION 2.6)
 project (executeFromFileTab)
 
@@ -33,11 +34,16 @@ find_package(DARTExt REQUIRED)
 find_package(DART REQUIRED)
 find_package(GRIP REQUIRED)
 
+message("CMAKE_DEBUG_POSTFIX : " ${CMAKE_DEBUG_POSTFIX})
+
 include_directories(${DARTExt_INCLUDEDIR})
 include_directories(${DART_INCLUDEDIR})
 include_directories(${GRIP_INCLUDEDIR})
 link_directories(${DART_LIBRARY_DIRS})
 link_directories(${GRIP_LIBRARY_DIRS})
+
+message("DART_LIBRARIES : " ${DART_LIBRARIES})
+message("GRIP_LIBRARY_DIRS : " ${GRIP_LIBRARIES})
 
 FIND_PACKAGE(LibXml2 REQUIRED)
 include_directories(${LIBXML2_INCLUDE_DIR})

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2013, Georgia Tech Research Corporation
- * 
+ *
  * Humanoid Robotics Lab      Georgia Institute of Technology
  * Director: Mike Stilman     http://www.golems.org
  *
@@ -58,14 +58,16 @@
 #include "Grasper.h"
 
 #include <libxml/parser.h>
+#include <tuple>
+#include <functional>
 
 template <class T>
 bool convert_text_to_num(T& t,
-                 const std::string& s,
-                 std::ios_base& (*f)(std::ios_base&))
+                         const std::string& s,
+                         std::ios_base& (*f)(std::ios_base&))
 {
-  std::istringstream iss(s);
-  return !(iss >> f >> t).fail();
+    std::istringstream iss(s);
+    return !(iss >> f >> t).fail();
 }
 
 
@@ -103,7 +105,7 @@ IMPLEMENT_DYNAMIC_CLASS(executeFromFileTab, GRIPTab)
 
 
 executeFromFileTab::executeFromFileTab(wxWindow *parent, const wxWindowID id, const wxPoint& pos, const wxSize& size, long style) :
-GRIPTab(parent, id, pos, size, style) {
+    GRIPTab(parent, id, pos, size, style) {
     wxSizer* sizerFull = new wxBoxSizer(wxHORIZONTAL);
 
     // Create Static boxes (outline of your Tab)
@@ -130,7 +132,7 @@ GRIPTab(parent, id, pos, size, style) {
     ss2BoxS->Add(new wxButton(this, id_button_Grasping, wxT("Plan Grasping")), 0, wxALL, 1);
     checkShowCollMesh = new wxCheckBox(this, id_checkbox_showcollmesh, wxT("Show Grasp Markers"));
     ss2BoxS->Add(checkShowCollMesh, 0, wxALL, 1);
-   
+
     ss2BoxS->Add(new wxButton(this, id_button_OpenHand, wxT("Open Hand")), 0, wxEXPAND, 1);
     ss2BoxS->Add(new wxButton(this, id_button_CloseHand, wxT("Close Hand")), 0, wxEXPAND, 1);
     // Add the boxes to their respective sizers
@@ -177,10 +179,25 @@ void executeFromFileTab::GRIPEventSceneLoaded() {
     grasper = new planning::Grasper(mWorld, mRobot, eeName);
 }
 
-void executeFromFileTab::onButtonLoadFile(wxCommandEvent &evt) {
+struct robot_and_dof
+{
+    int nb_dofs;
+    std::string robot_name;
+    std::string type;
+};
 
-    std::string dir = "/home/jmainpri/workspace/drc/wpi_openrave/hubo/matlab/";
-    std::string filename = dir + "movetraj0.txt";
+bool fct_sort( std::pair<int,robot_and_dof> a, std::pair<int,robot_and_dof> b)
+{
+    return a.first < b.first;
+}
+
+void executeFromFileTab::loadTrajecoryFromFile( std::string filename, openraveTrajectory& traj )
+{
+//    std::string dir = "/home/jmainpri/workspace/drc/wpi_openrave/hubo/matlab/";
+//    std::string filename = dir + "movetraj1.txt";
+
+    cout << "-------------------------------------------" << endl;
+    cout << " load file : " << filename << endl;
 
     xmlDocPtr doc;
     xmlNodePtr cur;
@@ -211,11 +228,11 @@ void executeFromFileTab::onButtonLoadFile(wxCommandEvent &evt) {
 
     cur = root->xmlChildrenNode->next;
 
-//    while (cur != NULL)
-//    {
-//        cout << cur->name << endl;
-//        cur = cur->next->next;
-//    }
+    //    while (cur != NULL)
+    //    {
+    //        cout << cur->name << endl;
+    //        cur = cur->next->next;
+    //    }
 
     if (xmlStrcmp(cur->name, xmlCharStrdup("configuration")))
     {
@@ -224,25 +241,53 @@ void executeFromFileTab::onButtonLoadFile(wxCommandEvent &evt) {
         return;
     }
 
-    tmp = xmlGetProp( cur->xmlChildrenNode->next, xmlCharStrdup("offset") );
-    if (tmp == NULL)
-    {
-        cout << "Error: no prop named offset" << endl;
-        return;
-    }
-    int offset = 0.0;
-    convert_text_to_num<int>( offset, (char*)tmp, std::dec );
-    cout << offset << endl;
+    std::vector< std::pair<int,robot_and_dof> > offsets;
 
-//    tmp = xmlGetProp( cur->xmlChildrenNode->next->next->next, xmlCharStrdup("dof") );
-//    if (tmp == NULL)
-//    {
-//        cout << "Error: no prop named dof" << endl;
-//        return;
-//    }
-//    int nb_dof = 0.0;
-//    convert_text_to_num<int>( nb_dof, (char*)tmp, std::dec );
-//    cout << nb_dof << endl;
+    xmlNodePtr node =  cur->xmlChildrenNode->next;
+
+    while( node != NULL )
+    {
+        cout << xmlGetProp( node, xmlCharStrdup("name") ) << endl;
+
+        robot_and_dof rd;
+
+        offsets.push_back(std::make_pair(0,rd));
+
+        tmp = xmlGetProp( node, xmlCharStrdup("offset") );
+        if (tmp == NULL)
+        {
+            cout << "Error: no prop named offset" << endl;
+            return;
+        }
+        convert_text_to_num<int>( offsets.back().first, (char*)tmp, std::dec );
+        cout << offsets.back().first << endl;
+
+        tmp = xmlGetProp( node, xmlCharStrdup("dof") );
+        if (tmp == NULL)
+        {
+            cout << "Error: no prop named offset" << endl;
+            return;
+        }
+        convert_text_to_num<int>( offsets.back().second.nb_dofs, (char*)tmp, std::dec );
+        cout << offsets.back().second.nb_dofs << endl;
+
+        std::stringstream ss( (char *)xmlGetProp( node, xmlCharStrdup("name") ) );
+        std::string line;
+
+        std::getline( ss, line, ' ' );
+        offsets.back().second.type = line;
+        cout << offsets.back().second.type << endl;
+
+        std::getline( ss, line, ' ' );
+        offsets.back().second.robot_name = line;
+        cout << offsets.back().second.robot_name << endl;
+
+        node = node->next->next;
+    }
+
+    std::sort( offsets.begin(), offsets.end(), fct_sort );
+
+    // ------------------------------------------------
 
     cur = cur->next->next;
 
@@ -259,7 +304,7 @@ void executeFromFileTab::onButtonLoadFile(wxCommandEvent &evt) {
         cout << "Error: no prop named count" << endl;
         return;
     }
-    int count = 0.0;
+    int count = 0;
     convert_text_to_num<int>( count, (char*)tmp, std::dec );
     cout << count << endl;
 
@@ -269,49 +314,101 @@ void executeFromFileTab::onButtonLoadFile(wxCommandEvent &evt) {
         cout << "Error: no prop named count" << endl;
         return;
     }
+
     std::string configuration( (char*)(tmp) );
-
-//    cout << configuration << endl;
-
+    //    cout << configuration << endl;
     std::stringstream ss( configuration );
-    std::vector<double> dofs_values;
+    std::vector<double> values;
     std::string line;
     while( std::getline(ss,line,' ') )
     {
-        double dof_val;
-        convert_text_to_num<int>( count, line, std::dec );
-        dofs_values.push_back( dof_val );
+        double val;
+        convert_text_to_num<double>( val, line, std::dec );
+        values.push_back( val );
     }
 
-    cout << "dofs_values.size() : " << dofs_values.size() << endl;
+    cout << "dofs_values.size() : " << values.size() << endl;
 
     xmlFreeDoc(doc);
 
-    std::vector< std::vector<double> > positions;
-    std::vector< std::vector<double> > velocities;
+    //std::vector<Eigen::VectorXd> positions(count);
+    //std::vector<Eigen::VectorXd> velocities(count);
+    //std::vector<double> deltatime(count);
 
-    positions.resize(count);
-    velocities.resize(count);
+    traj.positions.resize(count);
+    traj.velocities.resize(count);
+    traj.deltatime.resize(count);
 
-    int k=0;
+    cout << "count : " << count << endl;
+
+    std::string robot_name = "Hubo";
+
+    int ith_value=0;
 
     for(int i=0;i<count;i++)
     {
-        positions[i].resize(offset/2);
-        velocities[i].resize(offset/2);
-
-        for(int j=0;j<(offset/2);j++)
+        for(int k=0;k<int(offsets.size());k++)
         {
-            positions[i][j] = dofs_values[++k];
-        }
+            if( offsets[k].second.type != "deltatime" &&
+                offsets[k].second.robot_name != robot_name )
+            {
+                ith_value += offsets[k].second.nb_dofs;
+                continue;
+            }
 
-        for(int j=0;j<(offset/2);j++)
-        {
-            velocities[i][j] = dofs_values[++k];
-        }
+            int start = ith_value + offsets[k].first;
+            int end = ith_value + offsets[k].first + offsets[k].second.nb_dofs;
 
-        k++;
+            ith_value += offsets[k].second.nb_dofs;
+
+            if( offsets[k].second.type == "joint_values" )
+            {
+                traj.positions[i].resize( offsets[k].second.nb_dofs );
+
+                int l=0;
+                for(int j=start;j<end;j++)
+                {
+                    traj.positions[i][l++] = values[j];
+                }
+                //cout << traj.positions[i].transpose() << endl;
+            }
+
+            if( offsets[k].second.type == "joint_velocities" )
+            {
+                traj.velocities[i].resize( offsets[k].second.nb_dofs );
+
+                int l=0;
+                for(int j=start;j<end;j++)
+                {
+                    traj.velocities[i][l++] = values[j];
+                }
+            }
+
+            if( offsets[k].second.type == "deltatime" )
+            {
+                int l=0;
+                for(int j=start;j<end;j++)
+                {
+                    traj.deltatime[i] = values[l++];
+                }
+            }
+        }
     }
+}
+
+void executeFromFileTab::onButtonLoadFile(wxCommandEvent &evt) {
+
+    std::string dir = "/home/jmainpri/workspace/drc/wpi_openrave/hubo/matlab/";
+
+    openraveTrajectory traj0;
+    openraveTrajectory traj1;
+    openraveTrajectory traj2;
+    openraveTrajectory traj3;
+
+    loadTrajecoryFromFile( dir + "movetraj0.txt", traj0 );
+    loadTrajecoryFromFile( dir + "movetraj1.txt", traj1 );
+    loadTrajecoryFromFile( dir + "movetraj2.txt", traj2 );
+    loadTrajecoryFromFile( dir + "movetraj3.txt", traj3 );
 }
 
 /// Handle event for drawing grasp markers
@@ -387,7 +484,7 @@ void executeFromFileTab::grasp() {
         delete grasper;
         //re-init grasper
         grasper = new planning::Grasper(mWorld, mRobot, eeName);
-    } 
+    }
     // Store the actuated joints (all except the first 6 which are only a convenience to locate the robot in the world)
     std::vector<int> actuatedDofs(mRobot->getNumDofs() - 6);
     for (unsigned int i = 0; i < actuatedDofs.size(); i++) {
@@ -416,7 +513,7 @@ void executeFromFileTab::grasp() {
     
     // Create controller
     mController = new planning::Controller(mRobot, actuatedDofs, kP, kD, ankleDofs, anklePGains, ankleDGains);
-   
+
     // Setup grasper with a step = 0.02 mainly for JointMover
     grasper->init(mArmDofs, mStartConf, selectedNode, 0.02);
     
@@ -463,7 +560,7 @@ void executeFromFileTab::retryGrasp(){
     // CHECK
     cout << "\tReplanned Path Size: " << path.size()<< endl;
     mRobot->update();
-     
+
     // Create trajectory; no need to shorten path here
     const Eigen::VectorXd maxVelocity = 0.6 * Eigen::VectorXd::Ones(mTotalDofs.size());
     const Eigen::VectorXd maxAcceleration = 0.6 * Eigen::VectorXd::Ones(mTotalDofs.size());
@@ -531,14 +628,14 @@ void executeFromFileTab::GRIPStateChange() {
 /// Render grasp' markers such as grasping point
 void executeFromFileTab::GRIPEventRender() {
     //draw graspPoint resulting from offline grasp planning
-    if(checkShowCollMesh->IsChecked() && mWorld && grasper){        
+    if(checkShowCollMesh->IsChecked() && mWorld && grasper){
         //draw RED axes on graspPoint originally calculated
         drawAxes(grasper->getGraspingPoint(), 0.08, make_tuple(1.0, 0.0, 0.0));
         
         //draw BLUE axes on virtual GCP in robot's end-effector
         drawAxes(grasper->getGCPXYZ(), 0.08, make_tuple(0.0, 0.0, 1.0));
     }
-    //draw current graspPoint during simulation; note point is updated until 
+    //draw current graspPoint during simulation; note point is updated until
     //a new plan is made to save comp. power
     if(checkShowCollMesh->IsChecked() && mWorld && currentGraspPoint.sum() > 0.1){
         //draw GREEN axes on current graspPoint

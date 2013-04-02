@@ -45,6 +45,14 @@
 #include "Grasper.h"
 namespace planning { class Controller; }
 
+class openraveTrajectory
+{
+public:
+    std::vector<Eigen::VectorXd> positions;
+    std::vector<Eigen::VectorXd> velocities;
+    std::vector<double> deltatime;
+};
+
 class executeFromFileTab : public GRIPTab
 {
 public:
@@ -71,6 +79,7 @@ public:
   void onCheckShowCollMesh(wxCommandEvent &evt);
 
   void onButtonLoadFile(wxCommandEvent &evt);
+  void loadTrajecoryFromFile(std::string filename, openraveTrajectory& traj);
   
   void grasp();
   void retryGrasp();
