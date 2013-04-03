@@ -179,9 +179,8 @@ void executeFromFileTab::GRIPEventSceneLoaded() {
     grasper = new planning::Grasper(mWorld, mRobot, eeName);
 }
 
-/// Setup grasper when scene is loaded as well as populating arm's DoFs
-void executeFromFileTab::setHuboConfiguration(const Eigen::VectorXd& q) {
-
+void executeFromFileTab::printDofIndexes()
+{
     if(mRobot == NULL){
         cout << "No robot in the scene" << endl;
         return;
@@ -197,15 +196,32 @@ void executeFromFileTab::setHuboConfiguration(const Eigen::VectorXd& q) {
             cout << " , Child : " << dof->getJoint()->getChildNode()->getName();
         cout << endl;
     }
-//    // Define right arm nodes
-//    const string armNodes[] = {"Body_RSP", "Body_RSR", "Body_RSY", "Body_REP", "Body_RWY", "Body_RWP"};
-//    mArmDofs.resize(6);
-//    for (int i = 0; i < mArmDofs.size(); i++) {
-//        mArmDofs[i] = mRobot->getNode(armNodes[i].c_str())->getDof(0)->getSkelIndex();
-//    }
+}
 
-//    mRobot->setConfig(mArmDofs, mStartConf);
-//    viewer->DrawGLScene();
+/// Setup grasper when scene is loaded as well as populating arm's DoFs
+void executeFromFileTab::setHuboConfiguration(const Eigen::VectorXd& q) {
+
+    if(mRobot == NULL){
+        cout << "No robot in the scene" << endl;
+        return;
+    }
+
+    Eigen::VectorXd hubo_config;
+
+    int or_indexes[] = {25,  0, 14, 13, 26,  2,  1, 16, 15,  4,
+                         3, 18, 17,  6,  5, 20, 19,  8,  7, 22,
+                        21, 10,  9, 24, 23, 12, 11, 44, 47, 53,
+                        50, 56, 29, 32, 38, 35, 41, 42, 45, 36,
+                        46, 54, 27, 30, 36, 48, 39, 28, 46, 52,
+                        49, 55, 28, 31, 37, 49, 40 };
+
+    mHoleBodyDofs.resize(56);
+    for (int i = 6; i <63; i++) {
+        mHoleBodyDofs[i] = i;
+    }
+
+    mRobot->setConfig( mHoleBodyDofs, hubo_config );
+    viewer->DrawGLScene();
 }
 
 struct robot_and_dof

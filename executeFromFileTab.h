@@ -78,9 +78,11 @@ public:
   void onButtonCloseHand(wxCommandEvent &evt);
   void onCheckShowCollMesh(wxCommandEvent &evt);
 
+  void printDofIndexes();
   void setHuboConfiguration(const Eigen::VectorXd& q);
   void onButtonLoadFile(wxCommandEvent &evt);
   void loadTrajecoryFromFile(std::string filename, openraveTrajectory& traj);
+  std::vector<int> mHoleBodyDofs;
   
   void grasp();
   void retryGrasp();
