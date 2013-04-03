@@ -1,0 +1,15 @@
+<world name="hubo_world">
+
+  <!-- include the models here by referenceing their URDFs -->
+  <include filename="hubo-models/huboplus.urdf" model_name="jaemi"/>
+  <include filename="driving_wheel_full_wpi.urdf" model_name="wheel"/>
+  
+  <entity model="jaemi" name="GolemHubo">
+    <origin xyz="-0.10 0 0.988" rpy="0 0 0"/>
+  </entity>
+
+  <entity model="wheel" name="wheel">
+    <origin xyz="0.18 0.0 0.9" rpy="3.14 3.54 0.0"/>
+  </entity>
+
+</world>
