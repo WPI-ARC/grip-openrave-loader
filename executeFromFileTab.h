@@ -78,6 +78,7 @@ public:
   void onButtonCloseHand(wxCommandEvent &evt);
   void onCheckShowCollMesh(wxCommandEvent &evt);
 
+  void setHuboConfiguration(const Eigen::VectorXd& q);
   void onButtonLoadFile(wxCommandEvent &evt);
   void loadTrajecoryFromFile(std::string filename, openraveTrajectory& traj);
   

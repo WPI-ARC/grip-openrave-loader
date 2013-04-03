@@ -157,14 +157,14 @@ void executeFromFileTab::GRIPEventSceneLoaded() {
             break;
         }
     }
-    assert(mRobot);
-    mRobot->getDof(19)->setValue(-10.0 * M_PI / 180.0);
-    mRobot->getDof(20)->setValue(-10.0 * M_PI / 180.0);
-    mRobot->getDof(23)->setValue(20.0 * M_PI / 180.0);
-    mRobot->getDof(24)->setValue(20.0 * M_PI / 180.0);
-    mRobot->getDof(27)->setValue(-10.0 * M_PI / 180.0);
-    mRobot->getDof(28)->setValue(-10.0 * M_PI / 180.0);
-    mRobot->update();
+//    assert(mRobot);
+//    mRobot->getDof(19)->setValue(-10.0 * M_PI / 180.0);
+//    mRobot->getDof(20)->setValue(-10.0 * M_PI / 180.0);
+//    mRobot->getDof(23)->setValue(20.0 * M_PI / 180.0);
+//    mRobot->getDof(24)->setValue(20.0 * M_PI / 180.0);
+//    mRobot->getDof(27)->setValue(-10.0 * M_PI / 180.0);
+//    mRobot->getDof(28)->setValue(-10.0 * M_PI / 180.0);
+//    mRobot->update();
 
     // Define right arm nodes
     const string armNodes[] = {"Body_RSP", "Body_RSR", "Body_RSY", "Body_REP", "Body_RWY", "Body_RWP"};
@@ -177,6 +177,35 @@ void executeFromFileTab::GRIPEventSceneLoaded() {
     eeName = "Body_RWP";
     // Initialize Grasper; done here in order to allow Close and Open Hand buttons!
     grasper = new planning::Grasper(mWorld, mRobot, eeName);
+}
+
+/// Setup grasper when scene is loaded as well as populating arm's DoFs
+void executeFromFileTab::setHuboConfiguration(const Eigen::VectorXd& q) {
+
+    if(mRobot == NULL){
+        cout << "No robot in the scene" << endl;
+        return;
+    }
+
+    for(int i=0;i<mRobot->getNumDofs();i++)
+    {
+        kinematics::Dof* dof = mRobot->getDof(i);
+        cout << "Dof(" << i << ") : " << dof->getName();
+        if(dof->getJoint()->getParentNode())
+            cout << " , Parent : " << dof->getJoint()->getParentNode()->getName();
+        if(dof->getJoint()->getChildNode())
+            cout << " , Child : " << dof->getJoint()->getChildNode()->getName();
+        cout << endl;
+    }
+//    // Define right arm nodes
+//    const string armNodes[] = {"Body_RSP", "Body_RSR", "Body_RSY", "Body_REP", "Body_RWY", "Body_RWP"};
+//    mArmDofs.resize(6);
+//    for (int i = 0; i < mArmDofs.size(); i++) {
+//        mArmDofs[i] = mRobot->getNode(armNodes[i].c_str())->getDof(0)->getSkelIndex();
+//    }
+
+//    mRobot->setConfig(mArmDofs, mStartConf);
+//    viewer->DrawGLScene();
 }
 
 struct robot_and_dof
@@ -409,6 +438,8 @@ void executeFromFileTab::onButtonLoadFile(wxCommandEvent &evt) {
     loadTrajecoryFromFile( dir + "movetraj1.txt", traj1 );
     loadTrajecoryFromFile( dir + "movetraj2.txt", traj2 );
     loadTrajecoryFromFile( dir + "movetraj3.txt", traj3 );
+
+    setHuboConfiguration(Eigen::VectorXd::Zero(57));
 }
 
 /// Handle event for drawing grasp markers
@@ -627,6 +658,18 @@ void executeFromFileTab::GRIPStateChange() {
 
 /// Render grasp' markers such as grasping point
 void executeFromFileTab::GRIPEventRender() {
+
+    tuple<double,double,double> red = std::make_tuple (1, 0, 0 );
+
+    if( mRobot )
+    {
+        Eigen::Matrix4d T = mRobot->getNode("Body_Hip")->getWorldTransform();
+        cout << "Body_Hip : " << endl << T << endl;
+        drawAxesWithOrientation( T, 0.3, red );
+    }
+
+    drawAxes( Eigen::VectorXd::Zero(3), 0.3, red  );
+
     //draw graspPoint resulting from offline grasp planning
     if(checkShowCollMesh->IsChecked() && mWorld && grasper){
         //draw RED axes on graspPoint originally calculated

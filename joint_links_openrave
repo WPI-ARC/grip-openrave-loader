@@ -1,0 +1,70 @@
+OPEN_RAVE --------------------------------------------------------------------
+------------------------------------------------------------------------------
+
+
+
+
+                                          parent              child
+
+HPY                 0           0         Body_Hip            Body_Torso               
+RHY                 1           1         Body_RHY            Body_Hip                 
+LHY                 2           2         Body_Hip            Body_LHY                 
+RHR                 3           3         Body_RHR            Body_RHY                 
+LHR                 4           4         Body_LHY            Body_LHR                 
+RHP                 5           5         Body_RHP            Body_RHR                 
+LHP                 6           6         Body_LHR            Body_LHP                 
+RKP                 7           7         Body_RKP            Body_RHP                 
+LKP                 8           8         Body_LHP            Body_LKP                 
+RAP                 9           9         Body_RAP            Body_RKP                 
+LAP                 10          10        Body_LKP            Body_LAP                 
+RAR                 11          11        Body_RAR            Body_RAP                 
+LAR                 12          12        Body_LAP            Body_LAR                 
+RSP                 13          13        Body_Torso          Body_RSP                 
+LSP                 14          14        Body_Torso          Body_LSP                 
+RSR                 15          15        Body_RSP            Body_RSR                 
+LSR                 16          16        Body_LSP            Body_LSR                 
+RSY                 17          17        Body_RSR            Body_RSY                 
+LSY                 18          18        Body_LSR            Body_LSY                 
+REP                 19          19        Body_RSY            Body_REP                 
+LEP                 20          20        Body_LSY            Body_LEP                 
+RWY                 21          21        Body_REP            Body_RWY                 
+LWY                 22          22        Body_LEP            Body_LWY                 
+RWP                 23          23        Body_RWY            Body_RWP                 
+LWP                 24          24        Body_LWY            Body_LWP                 
+HNR                 25          25        Body_Torso          Body_HNR                 
+HNP                 26          26        Body_HNR            Body_HNP                 
+rightIndexKnuckle2  27          27        rightIndexProximal  rightIndexMedial         
+rightIndexKnuckle3  28          28        rightIndexMedial    rightIndexDistal         
+rightIndexKnuckle1  29          29        Body_RWP            rightIndexProximal       
+rightMiddleKnuckle2 30          30        rightMiddleProximal rightMiddleMedial        
+rightMiddleKnuckle3 31          31        rightMiddleMedial   rightMiddleDistal        
+rightMiddleKnuckle1 32          32        Body_RWP            rightMiddleProximal      
+rightRingKnuckle2   33          33        rightRingProximal   rightRingMedial          
+rightRingKnuckle3   34          34        rightRingMedial     rightRingDistal          
+rightRingKnuckle1   35          35        Body_RWP            rightRingProximal        
+rightPinkyKnuckle2  36          36        rightPinkyProximal  rightPinkyMedial         
+rightPinkyKnuckle3  37          37        rightPinkyMedial    rightPinkyDistal         
+rightPinkyKnuckle1  38          38        Body_RWP            rightPinkyProximal       
+rightThumbKnuckle2  39          39        rightThumbProximal  rightThumbMedial         
+rightThumbKnuckle3  40          40        rightThumbMedial    rightThumbDistal         
+rightThumbKnuckle1  41          41        Body_RWP            rightThumbProximal       
+leftIndexKnuckle2   42          42        leftIndexProximal   leftIndexMedial          
+leftIndexKnuckle3   43          43        leftIndexMedial     leftIndexDistal          
+leftIndexKnuckle1   44          44        Body_LWP            leftIndexProximal        
+leftMiddleKnuckle2  45          45        leftMiddleProximal  leftMiddleMedial         
+leftMiddleKnuckle3  46          46        leftMiddleMedial    leftMiddleDistal         
+leftMiddleKnuckle1  47          47        Body_LWP            leftMiddleProximal       
+leftRingKnuckle2    48          48        leftRingProximal    leftRingMedial           
+leftRingKnuckle3    49          49        leftRingMedial      leftRingDistal           
+leftRingKnuckle1    50          50        Body_LWP            leftRingProximal         
+leftPinkyKnuckle2   51          51        leftPinkyProximal   leftPinkyMedial          
+leftPinkyKnuckle3   52          52        leftPinkyMedial     leftPinkyDistal          
+leftPinkyKnuckle1   53          53        Body_LWP            leftPinkyProximal        
+leftThumbKnuckle2   54          54        leftThumbProximal   leftThumbMedial          
+leftThumbKnuckle3   55          55        leftThumbMedial     leftThumbDistal          
+leftThumbKnuckle1   56          56        Body_LWP            leftThumbProximal        
+RAR_dummy           -1          -1        rightFoot           Body_RAR                 
+LAR_dummy           -1          -1        Body_LAR            leftFoot                 
+RWP_dummy           -1          -1        Body_RWP            rightPalm                
+LWP_dummy           -1          -1        Body_LWP            leftPalm   
+
