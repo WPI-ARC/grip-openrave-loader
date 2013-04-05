@@ -52,6 +52,7 @@ include_directories(${LIBXML2_INCLUDE_DIR})
 
 message("LIBXML2_INCLUDE_DIR : " ${LIBXML2_INCLUDE_DIR})
 message("LIBXML2_LIBRARY_DIRS : " ${LIBXML2_LIBRARY_DIRS})
+message("LIBXML2_LIBRARIES : " ${LIBXML2_LIBRARIES})
 
 # Search all header and source files
 set ( executeFromFileTab_src executeFromFileTab.cpp executeFromFileTabApp.cpp Controller.cpp Grasper.cpp JointMover.cpp)

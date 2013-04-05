@@ -13,8 +13,7 @@
 
 using namespace std;
 using namespace Eigen;
-
-namespace planning {
+using namespace planning;
 
 Controller::Controller(dynamics::SkeletonDynamics* _skel, const vector<int> &_actuatedDofs,
                        const VectorXd &_kP, const VectorXd &_kD, const vector<int> &_ankleDofs, const VectorXd &_anklePGains, const VectorXd &_ankleDGains) :
@@ -48,14 +47,15 @@ Controller::~Controller(){
     delete mTrajectory;
 }
 
-void Controller::setTrajectory(const Trajectory* _trajectory, double _startTime, const std::vector<int> &_dofs) {
+void Controller::setTrajectory(const Trajectory* _trajectory, double _startTime, const std::vector<int> &_dofs)
+{
     mTrajectoryDofs = _dofs;
     mTrajectory = _trajectory;
     mStartTime = _startTime;
 }
 
-
-VectorXd Controller::getTorques(const VectorXd& _dof, const VectorXd& _dofVel, double _time) {
+VectorXd Controller::getTorques(const VectorXd& _dof, const VectorXd& _dofVel, double _time)
+{
     Eigen::VectorXd desiredDofVels = VectorXd::Zero(mSkel->getNumDofs());
 
     if(mTrajectory && _time - mStartTime >= 0.0 & _time - mStartTime <= mTrajectory->getDuration()) {
@@ -64,7 +64,7 @@ VectorXd Controller::getTorques(const VectorXd& _dof, const VectorXd& _dofVel, d
             desiredDofVels[mTrajectoryDofs[i]] = mTrajectory->getVelocity(_time - mStartTime)[i];
         }
     }
-    
+
     VectorXd torques;
     const double mTimestep = 0.001;
 
@@ -81,13 +81,20 @@ VectorXd Controller::getTorques(const VectorXd& _dof, const VectorXd& _dofVel, d
     double cop = 0.0;
     double offset = com[0] - cop;
 
+    VectorXd ankle_errors(mAnkleDofs.size());
+
     for(unsigned int i = 0; i < mAnkleDofs.size(); i++) {
+//        ankle_errors[i] = mDesiredDofs[mAnkleDofs[i]] - mSkel->getPose()[mAnkleDofs[i]];
         torques[mAnkleDofs[i]] = - mAnklePGains[i] * offset - mAnkleDGains[i] * (offset - mPreOffset) / mTimestep;
     }
 
     mPreOffset = offset;
 
-    return mSelectionMatrix * torques;
-}
+//    cout << "mDesiredDofs : " << mDesiredDofs.transpose() << endl;
+//    cout << "desiredDofVels : " << desiredDofVels.transpose() << endl;
+//    cout << "Ankle Errors : " << ankle_errors.transpose() << endl;
+//    cout << "Errors : " << ( mDesiredDofs - mSkel->getPose() ).transpose() << endl;
+//    cout << "Torques : " << (mSelectionMatrix * torques).transpose() << endl;
 
+    return mSelectionMatrix * torques;
 }

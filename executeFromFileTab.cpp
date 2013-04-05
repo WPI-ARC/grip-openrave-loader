@@ -70,7 +70,6 @@ bool convert_text_to_num(T& t,
     return !(iss >> f >> t).fail();
 }
 
-
 /// Define IDs for buttons
 enum DynamicSimulationTabEvents {
     id_button_DoPlanning = 8345,
@@ -85,6 +84,7 @@ enum DynamicSimulationTabEvents {
     id_button_OpenHand,
     id_button_CloseHand,
     id_button_LoadFile,
+    id_button_PlayTraj,
     id_label_Inst,
     id_checkbox_showcollmesh,
 };
@@ -99,6 +99,7 @@ EVT_COMMAND(id_button_Grasping, wxEVT_COMMAND_BUTTON_CLICKED, executeFromFileTab
 EVT_COMMAND(id_button_OpenHand, wxEVT_COMMAND_BUTTON_CLICKED, executeFromFileTab::onButtonOpenHand)
 EVT_COMMAND(id_button_CloseHand, wxEVT_COMMAND_BUTTON_CLICKED, executeFromFileTab::onButtonCloseHand)
 EVT_COMMAND(id_button_LoadFile, wxEVT_COMMAND_BUTTON_CLICKED, executeFromFileTab::onButtonLoadFile)
+EVT_COMMAND(id_button_PlayTraj, wxEVT_COMMAND_BUTTON_CLICKED, executeFromFileTab::onButtonPlayTraj)
 EVT_CHECKBOX(id_checkbox_showcollmesh, executeFromFileTab::onCheckShowCollMesh)
 END_EVENT_TABLE() 
 IMPLEMENT_DYNAMIC_CLASS(executeFromFileTab, GRIPTab)
@@ -127,6 +128,7 @@ executeFromFileTab::executeFromFileTab(wxWindow *parent, const wxWindowID id, co
 
     // Execute from file
     ss3BoxS->Add(new wxButton(this, id_button_LoadFile, wxT("Load File")), 0, wxALL, 1);
+    ss3BoxS->Add(new wxButton(this, id_button_PlayTraj, wxT("Play Trajectory")), 0, wxALL, 1);
 
     // Grasping
     ss2BoxS->Add(new wxButton(this, id_button_Grasping, wxT("Plan Grasping")), 0, wxALL, 1);
@@ -146,17 +148,26 @@ executeFromFileTab::executeFromFileTab(wxWindow *parent, const wxWindowID id, co
     mPredefStartConf.resize(6);
     mPredefStartConf << -0.858702, -0.674395, 0.0, -0.337896, 0.0, 0.0;
     mController = NULL;
+
+    mTrajId = 0;
 }
 
 /// Setup grasper when scene is loaded as well as populating arm's DoFs
 void executeFromFileTab::GRIPEventSceneLoaded() {
+
     // Find robot and set initial configuration for the legs
-    for(int i = 0; i < mWorld->getNumSkeletons(); i++){
+    for(int i = 0; i < mWorld->getNumSkeletons(); i++)
+    {
         if(mWorld->getSkeleton(i)->getName() == "GolemHubo"){
             mRobot = (robotics::Robot*) mWorld->getSkeleton(i);
-            break;
+        }
+
+        if(mWorld->getSkeleton(i)->getName() == "wheel"){
+            mWheel = (robotics::Robot*) mWorld->getSkeleton(i);
         }
     }
+
+    mWheel->setImmobileState(true);
 //    assert(mRobot);
 //    mRobot->getDof(19)->setValue(-10.0 * M_PI / 180.0);
 //    mRobot->getDof(20)->setValue(-10.0 * M_PI / 180.0);
@@ -166,17 +177,22 @@ void executeFromFileTab::GRIPEventSceneLoaded() {
 //    mRobot->getDof(28)->setValue(-10.0 * M_PI / 180.0);
 //    mRobot->update();
 
+    mActuatedDofs.resize( mRobot->getNumDofs() - 6 );
+    for (unsigned int i = 0; i < mActuatedDofs.size(); i++) {
+        mActuatedDofs[i] = i + 6;
+    }
+
     // Define right arm nodes
     const string armNodes[] = {"Body_RSP", "Body_RSR", "Body_RSY", "Body_REP", "Body_RWY", "Body_RWP"};
     mArmDofs.resize(6);
     for (int i = 0; i < mArmDofs.size(); i++) {
-        mArmDofs[i] = mRobot->getNode(armNodes[i].c_str())->getDof(0)->getSkelIndex();
+        mArmDofs[i] = mRobot->getNode( armNodes[i].c_str())->getDof(0)->getSkelIndex();
     }
 
     //Define palm effector name; Note: this is robot dependent!
     eeName = "Body_RWP";
     // Initialize Grasper; done here in order to allow Close and Open Hand buttons!
-    grasper = new planning::Grasper(mWorld, mRobot, eeName);
+    grasper = new planning::Grasper( mWorld, mRobot, eeName );
 }
 
 void executeFromFileTab::printDofIndexes()
@@ -199,14 +215,14 @@ void executeFromFileTab::printDofIndexes()
 }
 
 /// Setup grasper when scene is loaded as well as populating arm's DoFs
-void executeFromFileTab::setHuboConfiguration(const Eigen::VectorXd& q) {
+void executeFromFileTab::setHuboConfiguration( Eigen::VectorXd& q, bool is_position ) {
 
     if(mRobot == NULL){
         cout << "No robot in the scene" << endl;
         return;
     }
 
-    Eigen::VectorXd hubo_config;
+    Eigen::VectorXd hubo_config(57);
 
     int or_indexes[] = {25,  0, 14, 13, 26,  2,  1, 16, 15,  4,
                          3, 18, 17,  6,  5, 20, 19,  8,  7, 22,
@@ -215,13 +231,20 @@ void executeFromFileTab::setHuboConfiguration(const Eigen::VectorXd& q) {
                         46, 54, 27, 30, 36, 48, 39, 28, 46, 52,
                         49, 55, 28, 31, 37, 49, 40 };
 
-    mHoleBodyDofs.resize(56);
-    for (int i = 6; i <63; i++) {
-        mHoleBodyDofs[i] = i;
+    for (int i = 0; i<57; i++) {
+        hubo_config[i] = q[or_indexes[i]];
     }
 
-    mRobot->setConfig( mHoleBodyDofs, hubo_config );
-    viewer->DrawGLScene();
+    if( is_position )
+    {
+        hubo_config[7] += (21.19 * M_PI / 180.0); // lsr id : 7 = 13 - 6
+        hubo_config[8] -= (21.19 * M_PI / 180.0); // rsr id : 8 = 14 - 6
+
+        hubo_config[37-6] = -hubo_config[37-6]; // Thumbs
+        hubo_config[42-6] = -hubo_config[42-6];
+    }
+
+    q = hubo_config;
 }
 
 struct robot_and_dof
@@ -441,21 +464,146 @@ void executeFromFileTab::loadTrajecoryFromFile( std::string filename, openraveTr
     }
 }
 
+void executeFromFileTab::setHuboJointIndicies()
+{
+    for(int i=0;i<int(mTrajs.size());i++)
+    {
+        for(int j=0;j<int(mTrajs[i].positions.size());j++)
+        {
+            setHuboConfiguration( mTrajs[i].positions[j], true );
+        }
+
+        for(int j=0;j<int(mTrajs[i].velocities.size());j++)
+        {
+            setHuboConfiguration( mTrajs[i].velocities[j], false );
+        }
+    }
+}
+
+void executeFromFileTab::setPath()
+{
+    mPath.clear();
+
+    std::vector<int> traj_indexes(5);
+    traj_indexes[0] = 0;
+    traj_indexes[1] = 1;
+    traj_indexes[2] = 2;
+    traj_indexes[3] = 1;
+    traj_indexes[4] = 3;
+
+    for(int i=0;i<int(traj_indexes.size());i++)
+    {
+        for(int j=0;j<int(mTrajs[traj_indexes[i]].positions.size());j++)
+        {
+            mPath.push_back( mTrajs[traj_indexes[i]].positions[j] );
+        }
+    }
+}
+
+void executeFromFileTab::setTrajectory()
+{
+    if(mController != NULL){
+        delete mController;
+    }
+
+    // Define PD controller gains
+    Eigen::VectorXd kI = 100.0 * Eigen::VectorXd::Ones( mRobot->getNumDofs() );
+    Eigen::VectorXd kP = 500.0 * Eigen::VectorXd::Ones( mRobot->getNumDofs() );
+    Eigen::VectorXd kD = 100.0 * Eigen::VectorXd::Ones( mRobot->getNumDofs() );
+
+    // Define gains for the ankle PD
+    std::vector<int> ankleDofs(2);
+    ankleDofs[0] = 27;
+    ankleDofs[1] = 28;
+    const Eigen::VectorXd anklePGains = -300.0 * Eigen::VectorXd::Ones(2);
+    const Eigen::VectorXd ankleDGains = -500.0 * Eigen::VectorXd::Ones(2);
+
+    // Update robot's pose
+    mRobot->setConfig( mActuatedDofs, mTrajs[0].positions[0] );
+
+    // Create controller
+    mController = new planning::Controller( mRobot, mActuatedDofs, kP, kD, ankleDofs, anklePGains, ankleDGains );
+
+    // CHECK
+    //cout << "Offline Plan Size: " << path.size() << endl;
+    mRobot->update();
+
+    // Create trajectory; no need to shorten path here
+    //const Eigen::VectorXd maxVelocity = 0.6 * Eigen::VectorXd::Ones( mActuatedDofs.size());
+    //const Eigen::VectorXd maxAcceleration = 0.6 * Eigen::VectorXd::Ones(mActuatedDofs.size());
+    const Eigen::VectorXd maxVelocity = 2.0 * Eigen::VectorXd::Ones( mActuatedDofs.size() );
+    const Eigen::VectorXd maxAcceleration = 1.0 * Eigen::VectorXd::Ones(mActuatedDofs.size() );
+    planning::Trajectory* trajectory = new planning::PathFollowingTrajectory( mPath, maxVelocity, maxAcceleration );
+
+    std::cout << "Trajectory duration: " << trajectory->getDuration() << endl;
+    mController->setTrajectory( trajectory, 0, mActuatedDofs );
+
+    printf("Controller time: %f \n", mWorld->mTime);
+}
+
 void executeFromFileTab::onButtonLoadFile(wxCommandEvent &evt) {
 
-    std::string dir = "/home/jmainpri/workspace/drc/wpi_openrave/hubo/matlab/";
+    if( mRobot == NULL )
+    {
+        cout << "No robot in the scene" << endl;
+        return;
+    }
 
-    openraveTrajectory traj0;
-    openraveTrajectory traj1;
-    openraveTrajectory traj2;
-    openraveTrajectory traj3;
+    Eigen::VectorXd q(57);
 
-    loadTrajecoryFromFile( dir + "movetraj0.txt", traj0 );
-    loadTrajecoryFromFile( dir + "movetraj1.txt", traj1 );
-    loadTrajecoryFromFile( dir + "movetraj2.txt", traj2 );
-    loadTrajecoryFromFile( dir + "movetraj3.txt", traj3 );
+    if( mTrajs.empty() || mTrajId==0 )
+    {
+        std::string dir = "/home/jmainpri/workspace/drc/wpi_openrave/hubo/matlab/";
 
-    setHuboConfiguration(Eigen::VectorXd::Zero(57));
+        mTrajs.clear();
+        mTrajs.resize(4);
+
+        loadTrajecoryFromFile( dir + "movetraj0.txt", mTrajs[0] );
+        loadTrajecoryFromFile( dir + "movetraj1.txt", mTrajs[1] );
+        loadTrajecoryFromFile( dir + "movetraj2.txt", mTrajs[2] );
+        loadTrajecoryFromFile( dir + "movetraj3.txt", mTrajs[3] );
+
+        setHuboJointIndicies();
+        setPath();
+        setTrajectory();
+
+        cout << "Set start confiuration of traj 0 " << endl;
+        q = mTrajs[0].positions[0];
+        mTrajId++;
+    }
+    else if( mTrajId == 1 )
+    {
+        cout << "Set start confiuration of traj 1 " << endl;
+        q = mTrajs[1].positions[0];
+        mTrajId++;
+    }
+    else if( mTrajId == 2 )
+    {
+        cout << "Set start confiuration of traj 2 " << endl;
+        q = mTrajs[2].positions[0];
+        mTrajId++;
+    }
+    else if( mTrajId == 3 )
+    {
+        cout << "Set start confiuration of traj 3 " << endl;
+        q = mTrajs[3].positions[0];
+        mTrajId = 0;
+    }
+
+    mRobot->setConfig( mActuatedDofs, q );
+    viewer->DrawGLScene();
+}
+
+void executeFromFileTab::onButtonPlayTraj(wxCommandEvent &evt)
+{
+    std::list<Eigen::VectorXd>::const_iterator it;
+
+    for( it=mPath.begin(); it != mPath.end(); it++ )
+    {
+        mRobot->setConfig( mActuatedDofs, *it );
+        viewer->DrawGLScene();
+        usleep( 25000 );
+    }
 }
 
 /// Handle event for drawing grasp markers
@@ -498,7 +646,7 @@ void executeFromFileTab::onButtonDoGrasping(wxCommandEvent& evt){
         cout << "No world loaded or world does not contain a robot" << endl;
         return;
     }
-    grasp();
+    //grasp();
 }
 
 /// Close robot's end effector
@@ -521,127 +669,26 @@ void executeFromFileTab::onButtonCloseHand(wxCommandEvent& evt) {
     }
 }
 
-/// Set initial dynamic parameters and call grasp planner and controller
-void executeFromFileTab::grasp() {
-    
-    if(selectedNode == NULL || mStartConf.size() == 0){ECHO("\tERROR: Must select an object to grasp first!!"); return;}
-    // Perform memory management to allow for continuous grasping tests
-    if(mController != NULL){
-        delete mController;
-        delete grasper;
-        //re-init grasper
-        grasper = new planning::Grasper(mWorld, mRobot, eeName);
-    }
-    // Store the actuated joints (all except the first 6 which are only a convenience to locate the robot in the world)
-    std::vector<int> actuatedDofs(mRobot->getNumDofs() - 6);
-    for (unsigned int i = 0; i < actuatedDofs.size(); i++) {
-        actuatedDofs[i] = i + 6;
-    }
-    
-    // Deactivate collision checking between the feet and the ground during planning
-    dynamics::SkeletonDynamics* ground = mWorld->getSkeleton("ground");
-    mWorld->mCollisionHandle->getCollisionChecker()->deactivatePair(mRobot->getNode("Body_LAR"), ground->getNode(1));
-    mWorld->mCollisionHandle->getCollisionChecker()->deactivatePair(mRobot->getNode("Body_RAR"), ground->getNode(1));
-    
-    // Define PD controller gains
-    Eigen::VectorXd kI = 100.0 * Eigen::VectorXd::Ones(mRobot->getNumDofs());
-    Eigen::VectorXd kP = 500.0 * Eigen::VectorXd::Ones(mRobot->getNumDofs());
-    Eigen::VectorXd kD = 100.0 * Eigen::VectorXd::Ones(mRobot->getNumDofs());
-
-    // Define gains for the ankle PD
-    std::vector<int> ankleDofs(2);
-    ankleDofs[0] = 27;
-    ankleDofs[1] = 28;
-    const Eigen::VectorXd anklePGains = -1000.0 * Eigen::VectorXd::Ones(2);
-    const Eigen::VectorXd ankleDGains = -200.0 * Eigen::VectorXd::Ones(2);
-    
-    // Update robot's pose
-    mRobot->setConfig(mArmDofs, mStartConf);
-    
-    // Create controller
-    mController = new planning::Controller(mRobot, actuatedDofs, kP, kD, ankleDofs, anklePGains, ankleDGains);
-
-    // Setup grasper with a step = 0.02 mainly for JointMover
-    grasper->init(mArmDofs, mStartConf, selectedNode, 0.02);
-    
-    // Perform grasp planning; now really it's just Jacobian translation
-    std::list<Eigen::VectorXd> path;
-    std::vector<int> mTotalDofs;
-    grasper->plan(path, mTotalDofs);
-    
-    // CHECK
-    cout << "Offline Plan Size: " << path.size() << endl;
-    mRobot->update();
-    
-    // Create trajectory; no need to shorten path here
-    const Eigen::VectorXd maxVelocity = 0.6 * Eigen::VectorXd::Ones(mTotalDofs.size());
-    const Eigen::VectorXd maxAcceleration = 0.6 * Eigen::VectorXd::Ones(mTotalDofs.size());
-    planning::Trajectory* trajectory = new planning::PathFollowingTrajectory(path, maxVelocity, maxAcceleration);
-    
-    std::cout << "Trajectory duration: " << trajectory->getDuration() << endl;
-    mController->setTrajectory(trajectory, 0, mTotalDofs);
-    
-    // Reactivate collision of feet with floor Body_LAR Body_RAR
-    mWorld->mCollisionHandle->getCollisionChecker()->activatePair(mRobot->getNode("Body_LAR"), ground->getNode(1));
-    mWorld->mCollisionHandle->getCollisionChecker()->activatePair(mRobot->getNode("Body_RAR"), ground->getNode(1));
-
-    printf("Controller time: %f \n", mWorld->mTime);
-    
-}
-
-/// Replan in the middle of simulation according to accuracy measures
-void executeFromFileTab::retryGrasp(){
-    // Deactivate collision checking between the feet and the ground during planning
-    dynamics::SkeletonDynamics* ground = mWorld->getSkeleton("ground");
-    mWorld->mCollisionHandle->getCollisionChecker()->deactivatePair(mRobot->getNode("Body_LAR"), ground->getNode(1));
-    mWorld->mCollisionHandle->getCollisionChecker()->deactivatePair(mRobot->getNode("Body_RAR"), ground->getNode(1));
-    
-    // Setup grasper by updating startConfig to be current robot's config
-    grasper->init(mArmDofs, mRobot->getConfig(mArmDofs), selectedNode, 0.02);
-    
-    // Perform grasp planning; now really it's just Jacobian translation
-    std::list<Eigen::VectorXd> path;
-    std::vector<int> mTotalDofs;
-    grasper->plan(path, mTotalDofs);
-    
-    // CHECK
-    cout << "\tReplanned Path Size: " << path.size()<< endl;
-    mRobot->update();
-
-    // Create trajectory; no need to shorten path here
-    const Eigen::VectorXd maxVelocity = 0.6 * Eigen::VectorXd::Ones(mTotalDofs.size());
-    const Eigen::VectorXd maxAcceleration = 0.6 * Eigen::VectorXd::Ones(mTotalDofs.size());
-    planning::Trajectory* trajectory = new planning::PathFollowingTrajectory(path, maxVelocity, maxAcceleration);
-    
-    cout << "\tReplanned Trajectory Duration: " << trajectory->getDuration() << endl;
-    mController->setTrajectory(trajectory, 0, mTotalDofs);
-    
-    // Reactivate collision of feet with floor Body_LAR Body_RAR
-    mWorld->mCollisionHandle->getCollisionChecker()->activatePair(mRobot->getNode("Body_LAR"), ground->getNode(1));
-    mWorld->mCollisionHandle->getCollisionChecker()->activatePair(mRobot->getNode("Body_RAR"), ground->getNode(1));
-
-    printf("\tReplanned Controller Time: %f \n", mWorld->mTime);
-}
-
 /// Before each simulation step we set the torques the controller applies to the joints and check for plan's accuracy
 void executeFromFileTab::GRIPEventSimulationBeforeTimestep() {
-    Eigen::VectorXd positionTorques = mController->getTorques(mRobot->getPose(), mRobot->getQDotVector(), mWorld->mTime);
+
+    Eigen::VectorXd positionTorques = mController->getTorques( mRobot->getPose(), mRobot->getQDotVector(), mWorld->mTime );
     // section here to control the fingers for force-based grasping
     // instead of position-based grasping
-    mRobot->setInternalForces(positionTorques);
+    mRobot->setInternalForces( positionTorques );
     
     //check object position and replan only if it hasnt been done already to save computing power
-    if (!mAlreadyReplan) {
-        grasper->findClosestGraspingPoint(currentGraspPoint, selectedNode);
-        Vector3d diff = currentGraspPoint - grasper->getGraspingPoint();
+//    if (!mAlreadyReplan) {
+//        grasper->findClosestGraspingPoint(currentGraspPoint, selectedNode);
+//        Vector3d diff = currentGraspPoint - grasper->getGraspingPoint();
         
-        // Note: Error bound must be < 0.09 as Jacobian translation fails to reach when it's too close to target
-        if (diff.norm() >= 0.006) {
-            ECHO("\tNote: Re-planning grasp!");
-            this->retryGrasp();
-            mAlreadyReplan = true;
-        }
-    }
+//        // Note: Error bound must be < 0.09 as Jacobian translation fails to reach when it's too close to target
+//        if (diff.norm() >= 0.006) {
+//            ECHO("\tNote: Re-planning grasp!");
+//            this->retryGrasp();
+//            mAlreadyReplan = true;
+//        }
+//    }
 }
 
 /// Handle simulation events after timestep
@@ -654,6 +701,7 @@ void executeFromFileTab::GRIPEventSimulationStart() {
 
 /// Store selected node in tree-view data as grasper's objective
 void executeFromFileTab::GRIPStateChange() {
+
     if (!selectedTreeNode) {
         return;
     }
@@ -680,7 +728,14 @@ void executeFromFileTab::GRIPEventRender() {
     if( mRobot )
     {
         Eigen::Matrix4d T = mRobot->getNode("Body_Hip")->getWorldTransform();
-        cout << "Body_Hip : " << endl << T << endl;
+        // cout << "Body_Hip : " << endl << T << endl;
+        drawAxesWithOrientation( T, 0.3, red );
+    }
+
+    if( mWheel )
+    {
+        Eigen::Matrix4d T = mWheel->getNode("handle")->getWorldTransform();
+        //cout << "handle : " << endl << T << endl;
         drawAxesWithOrientation( T, 0.3, red );
     }
 

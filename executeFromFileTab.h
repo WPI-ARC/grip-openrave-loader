@@ -56,7 +56,7 @@ public:
 class executeFromFileTab : public GRIPTab
 {
 public:
-  executeFromFileTab(){};
+  executeFromFileTab() {};
   executeFromFileTab(wxWindow * parent, wxWindowID id = -1,
 	      const wxPoint & pos = wxDefaultPosition,
 	      const wxSize & size = wxDefaultSize,
@@ -79,13 +79,19 @@ public:
   void onCheckShowCollMesh(wxCommandEvent &evt);
 
   void printDofIndexes();
-  void setHuboConfiguration(const Eigen::VectorXd& q);
+  void setHuboConfiguration( Eigen::VectorXd& q, bool is_position );
   void onButtonLoadFile(wxCommandEvent &evt);
+  void onButtonPlayTraj(wxCommandEvent &evt);
+
   void loadTrajecoryFromFile(std::string filename, openraveTrajectory& traj);
-  std::vector<int> mHoleBodyDofs;
-  
-  void grasp();
-  void retryGrasp();
+  void setHuboJointIndicies();
+  void setTrajectory();
+  void setPath();
+  std::vector<int> mActuatedDofs;
+  std::vector<openraveTrajectory> mTrajs;
+  std::list<Eigen::VectorXd> mPath;
+  int mTrajId;
+
   void drawAxes(Eigen::VectorXd origin, double size, tuple<double,double,double> color);
   void drawAxesWithOrientation(const Eigen::Matrix4d& transformation, double size, tuple<double,double,double> color);
   
@@ -94,6 +100,7 @@ public:
   wxCheckBox* checkShowCollMesh;
   kinematics::BodyNode* selectedNode;
   robotics::Robot* mRobot;
+  robotics::Robot* mWheel;
   
   std::vector<int> mArmDofs;
   Eigen::VectorXd mStartConf;
