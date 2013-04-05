@@ -515,8 +515,8 @@ void executeFromFileTab::setTrajectory()
     std::vector<int> ankleDofs(2);
     ankleDofs[0] = 27;
     ankleDofs[1] = 28;
-    const Eigen::VectorXd anklePGains = -300.0 * Eigen::VectorXd::Ones(2);
-    const Eigen::VectorXd ankleDGains = -500.0 * Eigen::VectorXd::Ones(2);
+    const Eigen::VectorXd anklePGains = -100.0 * Eigen::VectorXd::Ones(2);
+    const Eigen::VectorXd ankleDGains = -50.0 * Eigen::VectorXd::Ones(2);
 
     // Update robot's pose
     mRobot->setConfig( mActuatedDofs, mTrajs[0].positions[0] );
@@ -531,12 +531,17 @@ void executeFromFileTab::setTrajectory()
     // Create trajectory; no need to shorten path here
     //const Eigen::VectorXd maxVelocity = 0.6 * Eigen::VectorXd::Ones( mActuatedDofs.size());
     //const Eigen::VectorXd maxAcceleration = 0.6 * Eigen::VectorXd::Ones(mActuatedDofs.size());
-    const Eigen::VectorXd maxVelocity = 2.0 * Eigen::VectorXd::Ones( mActuatedDofs.size() );
-    const Eigen::VectorXd maxAcceleration = 1.0 * Eigen::VectorXd::Ones(mActuatedDofs.size() );
+    const Eigen::VectorXd maxVelocity = 0.6 * Eigen::VectorXd::Ones( mActuatedDofs.size() );
+    const Eigen::VectorXd maxAcceleration = 0.6 * Eigen::VectorXd::Ones(mActuatedDofs.size() );
     planning::Trajectory* trajectory = new planning::PathFollowingTrajectory( mPath, maxVelocity, maxAcceleration );
 
     std::cout << "Trajectory duration: " << trajectory->getDuration() << endl;
     mController->setTrajectory( trajectory, 0, mActuatedDofs );
+
+    // Reactivate collision of feet with floor Body_LAR Body_RAR
+    dynamics::SkeletonDynamics* ground = mWorld->getSkeleton("ground");
+    mWorld->mCollisionHandle->getCollisionChecker()->activatePair(mRobot->getNode("Body_LAR"), ground->getNode(1));
+    mWorld->mCollisionHandle->getCollisionChecker()->activatePair(mRobot->getNode("Body_RAR"), ground->getNode(1));
 
     printf("Controller time: %f \n", mWorld->mTime);
 }
@@ -676,6 +681,8 @@ void executeFromFileTab::GRIPEventSimulationBeforeTimestep() {
     // section here to control the fingers for force-based grasping
     // instead of position-based grasping
     mRobot->setInternalForces( positionTorques );
+
+    cout << "mRobot->getPose() : " << mRobot->getPose().transpose() << endl;
     
     //check object position and replan only if it hasnt been done already to save computing power
 //    if (!mAlreadyReplan) {
@@ -732,12 +739,12 @@ void executeFromFileTab::GRIPEventRender() {
         drawAxesWithOrientation( T, 0.3, red );
     }
 
-    if( mWheel )
-    {
-        Eigen::Matrix4d T = mWheel->getNode("handle")->getWorldTransform();
-        //cout << "handle : " << endl << T << endl;
-        drawAxesWithOrientation( T, 0.3, red );
-    }
+//    if( mWheel )
+//    {
+//        Eigen::Matrix4d T = mWheel->getNode("handle")->getWorldTransform();
+//        //cout << "handle : " << endl << T << endl;
+//        drawAxesWithOrientation( T, 0.3, red );
+//    }
 
     drawAxes( Eigen::VectorXd::Zero(3), 0.3, red  );
 
