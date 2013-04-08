@@ -1,7 +1,7 @@
 Openrave Trajectory Loader for Grip
 ==================
 
-Builds a Grip widget that loads openrave trajectory in DART. Depends on Grip and libxml2.
+Builds a Grip widget that loads openrave trajectories in DART. Depends on grip and libxml2.
 
 Install
 -------
