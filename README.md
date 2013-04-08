@@ -6,11 +6,11 @@ Builds a Grip widget that loads openrave trajectory in DART. Depends on Grip and
 Install
 -------
 
-   git clone https://github.com/WPI-ARC/grip-openrave-loader.git
-   mkdir build
-   cd build 
-   cmake ..
-   make
+    git clone https://github.com/WPI-ARC/grip-openrave-loader.git
+    mkdir build
+    cd build 
+    cmake ..
+    make
    
 
 Play example trajectory
