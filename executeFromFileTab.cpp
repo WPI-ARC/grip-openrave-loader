@@ -127,7 +127,7 @@ executeFromFileTab::executeFromFileTab(wxWindow *parent, const wxWindowID id, co
 /// Setup grasper when scene is loaded as well as populating arm's DoFs
 void executeFromFileTab::GRIPEventSceneLoaded() {
 
-    // Find robot and set initial configuration for the legs
+    // Find robot and wheel
     for(int i = 0; i < mWorld->getNumSkeletons(); i++)
     {
         if(mWorld->getSkeleton(i)->getName() == "GolemHubo"){
@@ -140,14 +140,6 @@ void executeFromFileTab::GRIPEventSceneLoaded() {
     }
 
     mWheel->setImmobileState(true);
-//    assert(mRobot);
-//    mRobot->getDof(19)->setValue(-10.0 * M_PI / 180.0);
-//    mRobot->getDof(20)->setValue(-10.0 * M_PI / 180.0);
-//    mRobot->getDof(23)->setValue(20.0 * M_PI / 180.0);
-//    mRobot->getDof(24)->setValue(20.0 * M_PI / 180.0);
-//    mRobot->getDof(27)->setValue(-10.0 * M_PI / 180.0);
-//    mRobot->getDof(28)->setValue(-10.0 * M_PI / 180.0);
-//    mRobot->update();
 
     mActuatedDofs.resize( mRobot->getNumDofs() - 6 );
     for (unsigned int i = 0; i < mActuatedDofs.size(); i++) {
@@ -163,8 +155,6 @@ void executeFromFileTab::GRIPEventSceneLoaded() {
 
     //Define palm effector name; Note: this is robot dependent!
     eeName = "Body_RWP";
-    // Initialize Grasper; done here in order to allow Close and Open Hand buttons!
-    // grasper = new planning::Grasper( mWorld, mRobot, eeName );
 }
 
 void executeFromFileTab::printDofIndexes()
@@ -186,7 +176,7 @@ void executeFromFileTab::printDofIndexes()
     }
 }
 
-/// Setup grasper when scene is loaded as well as populating arm's DoFs
+/// Setup hubo configuration
 void executeFromFileTab::setHuboConfiguration( Eigen::VectorXd& q, bool is_position ) {
 
     if(mRobot == NULL){
@@ -233,9 +223,6 @@ bool fct_sort( std::pair<int,robot_and_dof> a, std::pair<int,robot_and_dof> b)
 
 void executeFromFileTab::loadTrajecoryFromFile( std::string filename, openraveTrajectory& traj )
 {
-//    std::string dir = "/home/jmainpri/workspace/drc/wpi_openrave/hubo/matlab/";
-//    std::string filename = dir + "movetraj1.txt";
-
     cout << "-------------------------------------------" << endl;
     cout << " load file : " << filename << endl;
 
@@ -356,7 +343,7 @@ void executeFromFileTab::loadTrajecoryFromFile( std::string filename, openraveTr
     }
 
     std::string configuration( (char*)(tmp) );
-    //    cout << configuration << endl;
+    // cout << configuration << endl;
     std::stringstream ss( configuration );
     std::vector<double> values;
     std::string line;
@@ -371,9 +358,6 @@ void executeFromFileTab::loadTrajecoryFromFile( std::string filename, openraveTr
 
     xmlFreeDoc(doc);
 
-    //std::vector<Eigen::VectorXd> positions(count);
-    //std::vector<Eigen::VectorXd> velocities(count);
-    //std::vector<double> deltatime(count);
 
     traj.positions.resize(count);
     traj.velocities.resize(count);
@@ -518,6 +502,8 @@ void executeFromFileTab::setTrajectory()
     printf("Controller time: %f \n", mWorld->mTime);
 }
 
+// Load from 4 files and show the start configuration
+// of each trajectory when pushed again
 void executeFromFileTab::onButtonLoadFile(wxCommandEvent &evt) {
 
     if( mRobot == NULL )
@@ -572,6 +558,7 @@ void executeFromFileTab::onButtonLoadFile(wxCommandEvent &evt) {
     viewer->DrawGLScene();
 }
 
+// Plays the loaded path
 void executeFromFileTab::onButtonPlayTraj(wxCommandEvent &evt)
 {
     std::list<Eigen::VectorXd>::const_iterator it;
@@ -599,19 +586,6 @@ void executeFromFileTab::GRIPEventSimulationBeforeTimestep() {
 
     cout << "positionTorques : " << positionTorques.transpose() << endl;
     cout << "mRobot->getPose() : " << mRobot->getPose().transpose() << endl;
-    
-    //check object position and replan only if it hasnt been done already to save computing power
-//    if (!mAlreadyReplan) {
-//        grasper->findClosestGraspingPoint(currentGraspPoint, selectedNode);
-//        Vector3d diff = currentGraspPoint - grasper->getGraspingPoint();
-        
-//        // Note: Error bound must be < 0.09 as Jacobian translation fails to reach when it's too close to target
-//        if (diff.norm() >= 0.006) {
-//            ECHO("\tNote: Re-planning grasp!");
-//            this->retryGrasp();
-//            mAlreadyReplan = true;
-//        }
-//    }
 }
 
 /// Handle simulation events after timestep
