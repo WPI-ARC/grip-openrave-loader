@@ -21,4 +21,3 @@ Play example trajectory
 
 
 * [ARC Lab, Worcester Polythecnic Institute](http://http://arc.wpi.edu/)
-* [Golems Humanoids Lab, Georgia Tech](http://golems.org/)
