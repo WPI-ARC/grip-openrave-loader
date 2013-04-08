@@ -36,6 +36,8 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+// Modified by Jim Mainprice
+
 #ifndef __SAMPLE_MANIPULATION_TAB__
 #define __SAMPLE_MANIPULATION_TAB__
 
