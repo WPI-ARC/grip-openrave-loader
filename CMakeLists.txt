@@ -55,8 +55,8 @@ message("LIBXML2_LIBRARY_DIRS : " ${LIBXML2_LIBRARY_DIRS})
 message("LIBXML2_LIBRARIES : " ${LIBXML2_LIBRARIES})
 
 # Search all header and source files
-set ( executeFromFileTab_src executeFromFileTab.cpp executeFromFileTabApp.cpp Controller.cpp Grasper.cpp JointMover.cpp)
-set ( executeFromFileTab_hdr executeFromFileTab.h Controller.h Grasper.h JointMover.h)
+set ( executeFromFileTab_src executeFromFileTab.cpp executeFromFileTabApp.cpp Controller.cpp)
+set ( executeFromFileTab_hdr executeFromFileTab.h Controller.h)
 
 if(WIN32)
   set (wxWidgets_EXCLUDE_COMMON_LIBRARIES TRUE)

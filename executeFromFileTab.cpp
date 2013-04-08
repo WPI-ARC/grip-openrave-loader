@@ -55,7 +55,6 @@
 #include <planning/PathShortener.h>
 #include <planning/PathFollowingTrajectory.h>
 #include "Controller.h"
-#include "Grasper.h"
 
 #include <libxml/parser.h>
 #include <tuple>
@@ -92,12 +91,6 @@ using namespace std;
 
 // Handler for events executeFromFileTab
 BEGIN_EVENT_TABLE(executeFromFileTab, wxPanel)
-EVT_COMMAND(id_button_SetPredefStart, wxEVT_COMMAND_BUTTON_CLICKED, executeFromFileTab::onButtonSetPredefStart)
-EVT_COMMAND(id_button_SetStart, wxEVT_COMMAND_BUTTON_CLICKED, executeFromFileTab::onButtonSetStart)
-EVT_COMMAND(id_button_ShowStart, wxEVT_COMMAND_BUTTON_CLICKED, executeFromFileTab::onButtonShowStart)
-EVT_COMMAND(id_button_Grasping, wxEVT_COMMAND_BUTTON_CLICKED, executeFromFileTab::onButtonDoGrasping)
-EVT_COMMAND(id_button_OpenHand, wxEVT_COMMAND_BUTTON_CLICKED, executeFromFileTab::onButtonOpenHand)
-EVT_COMMAND(id_button_CloseHand, wxEVT_COMMAND_BUTTON_CLICKED, executeFromFileTab::onButtonCloseHand)
 EVT_COMMAND(id_button_LoadFile, wxEVT_COMMAND_BUTTON_CLICKED, executeFromFileTab::onButtonLoadFile)
 EVT_COMMAND(id_button_PlayTraj, wxEVT_COMMAND_BUTTON_CLICKED, executeFromFileTab::onButtonPlayTraj)
 EVT_CHECKBOX(id_checkbox_showcollmesh, executeFromFileTab::onCheckShowCollMesh)
@@ -110,43 +103,20 @@ executeFromFileTab::executeFromFileTab(wxWindow *parent, const wxWindowID id, co
     wxSizer* sizerFull = new wxBoxSizer(wxHORIZONTAL);
 
     // Create Static boxes (outline of your Tab)
-    wxStaticBox* ss1Box = new wxStaticBox(this, -1, wxT("Setup"));
-    wxStaticBox* ss2Box = new wxStaticBox(this, -1, wxT("Manipulation"));
     wxStaticBox* ss3Box = new wxStaticBox(this, -1, wxT("File"));
     
     // Create sizers for these static boxes
-    wxStaticBoxSizer* ss1BoxS = new wxStaticBoxSizer(ss1Box, wxVERTICAL);
-    wxStaticBoxSizer* ss2BoxS = new wxStaticBoxSizer(ss2Box, wxVERTICAL);
     wxStaticBoxSizer* ss3BoxS = new wxStaticBoxSizer(ss3Box, wxVERTICAL);
-    
-    // Start and goal conf button
-    ss1BoxS->Add(new wxButton(this, id_button_SetPredefStart, wxT("Set Predef Start")), 0, wxALL, 1);
-    ss1BoxS->Add(new wxButton(this, id_button_SetStart, wxT("Set Custom Start")), 0, wxALL, 1);
-    ss1BoxS->Add(new wxButton(this, id_button_ShowStart, wxT("Show Start Conf")), 0, wxALL, 1);
-    ss1BoxS->Add(new wxStaticText(this, id_label_Inst, wxT("Instructions:\n[1]Set start conf  [2]Select an object  [3]Click Plan Grasping")
-                                  ), 0, wxEXPAND);
 
     // Execute from file
     ss3BoxS->Add(new wxButton(this, id_button_LoadFile, wxT("Load File")), 0, wxALL, 1);
     ss3BoxS->Add(new wxButton(this, id_button_PlayTraj, wxT("Play Trajectory")), 0, wxALL, 1);
 
-    // Grasping
-    ss2BoxS->Add(new wxButton(this, id_button_Grasping, wxT("Plan Grasping")), 0, wxALL, 1);
-    checkShowCollMesh = new wxCheckBox(this, id_checkbox_showcollmesh, wxT("Show Grasp Markers"));
-    ss2BoxS->Add(checkShowCollMesh, 0, wxALL, 1);
-
-    ss2BoxS->Add(new wxButton(this, id_button_OpenHand, wxT("Open Hand")), 0, wxEXPAND, 1);
-    ss2BoxS->Add(new wxButton(this, id_button_CloseHand, wxT("Close Hand")), 0, wxEXPAND, 1);
     // Add the boxes to their respective sizers
-    sizerFull->Add(ss1BoxS, 1, wxEXPAND | wxALL, 6);
-    sizerFull->Add(ss2BoxS, 1, wxEXPAND | wxALL, 6);
     sizerFull->Add(ss3BoxS, 1, wxEXPAND | wxALL, 6);
     SetSizer(sizerFull);
 
     // Additional settings
-    mAlreadyReplan = false;
-    mPredefStartConf.resize(6);
-    mPredefStartConf << -0.858702, -0.674395, 0.0, -0.337896, 0.0, 0.0;
     mController = NULL;
 
     mTrajId = 0;
@@ -183,16 +153,16 @@ void executeFromFileTab::GRIPEventSceneLoaded() {
     }
 
     // Define right arm nodes
-    const string armNodes[] = {"Body_RSP", "Body_RSR", "Body_RSY", "Body_REP", "Body_RWY", "Body_RWP"};
-    mArmDofs.resize(6);
-    for (int i = 0; i < mArmDofs.size(); i++) {
-        mArmDofs[i] = mRobot->getNode( armNodes[i].c_str())->getDof(0)->getSkelIndex();
-    }
+//    const string armNodes[] = {"Body_RSP", "Body_RSR", "Body_RSY", "Body_REP", "Body_RWY", "Body_RWP"};
+//    mArmDofs.resize(6);
+//    for (int i = 0; i < mArmDofs.size(); i++) {
+//        mArmDofs[i] = mRobot->getNode( armNodes[i].c_str())->getDof(0)->getSkelIndex();
+//    }
 
     //Define palm effector name; Note: this is robot dependent!
     eeName = "Body_RWP";
     // Initialize Grasper; done here in order to allow Close and Open Hand buttons!
-    grasper = new planning::Grasper( mWorld, mRobot, eeName );
+    // grasper = new planning::Grasper( mWorld, mRobot, eeName );
 }
 
 void executeFromFileTab::printDofIndexes()
@@ -558,7 +528,8 @@ void executeFromFileTab::onButtonLoadFile(wxCommandEvent &evt) {
 
     if( mTrajs.empty() || mTrajId==0 )
     {
-        std::string dir = "/home/jmainpri/workspace/drc/wpi_openrave/hubo/matlab/";
+        //std::string dir = "/home/jmainpri/workspace/drc/wpi_openrave/hubo/matlab/";
+        std::string dir = "../trajs/";
 
         mTrajs.clear();
         mTrajs.resize(4);
@@ -615,64 +586,6 @@ void executeFromFileTab::onButtonPlayTraj(wxCommandEvent &evt)
 void executeFromFileTab::onCheckShowCollMesh(wxCommandEvent &evt) {
 }
 
-/// Set start configuration to the configuration the arm is currently in
-void executeFromFileTab::onButtonSetStart(wxCommandEvent& evt){
-    if(!mWorld || mRobot == NULL){
-        cout << "No world loaded or world does not contain a robot" << endl;
-        return;
-    }
-    mStartConf = mRobot->getConfig(mArmDofs);
-    cout << "Start Configuration: " << mStartConf.transpose() << endl;
-}
-
-/// Reset start configuration to predefined one
-void executeFromFileTab::onButtonSetPredefStart(wxCommandEvent& evt){
-    if(!mWorld || mRobot == NULL){
-        cout << "No world loaded or world does not contain a robot" << endl;
-        return;
-    }
-    mStartConf = mPredefStartConf;
-}
-
-/// Show the currently set start configuration
-void executeFromFileTab::onButtonShowStart(wxCommandEvent& evt) {
-    if (mStartConf.size()) {
-        cout << "Showing start conf for right arm: " << mStartConf.transpose() << endl;
-        mRobot->setConfig(mArmDofs, mStartConf);
-        viewer->DrawGLScene();
-    } else {
-        ECHO("ERROR: Must set start conf for right arm first!");
-    }
-}
-
-/// Test currently implemented grasping approach
-void executeFromFileTab::onButtonDoGrasping(wxCommandEvent& evt){
-    if(!mWorld || mRobot == NULL){
-        cout << "No world loaded or world does not contain a robot" << endl;
-        return;
-    }
-    //grasp();
-}
-
-/// Close robot's end effector
-void executeFromFileTab::onButtonOpenHand(wxCommandEvent& evt) {
-    if (grasper != NULL && eeName.size()) {
-        grasper->openHand();
-        viewer->DrawGLScene();
-    } else {
-        ECHO("ERROR: Must reinitialize Grasper object: Click Grasp Object!")
-    }
-}
-
-/// Open robot's end effector
-void executeFromFileTab::onButtonCloseHand(wxCommandEvent& evt) {
-    if (grasper != NULL && eeName.size()) {
-        grasper->closeHandPositionBased(0.1, selectedNode);
-        viewer->DrawGLScene();
-    } else {
-        ECHO("ERROR: Must reinitialize Grasper object: Click Grasp Object!")
-    }
-}
 
 /// Before each simulation step we set the torques the controller applies to the joints and check for plan's accuracy
 void executeFromFileTab::GRIPEventSimulationBeforeTimestep() {
@@ -748,20 +661,6 @@ void executeFromFileTab::GRIPEventRender() {
 
     drawAxes( Eigen::VectorXd::Zero(3), 0.3, red  );
 
-    //draw graspPoint resulting from offline grasp planning
-    if(checkShowCollMesh->IsChecked() && mWorld && grasper){
-        //draw RED axes on graspPoint originally calculated
-        drawAxes(grasper->getGraspingPoint(), 0.08, make_tuple(1.0, 0.0, 0.0));
-        
-        //draw BLUE axes on virtual GCP in robot's end-effector
-        drawAxes(grasper->getGCPXYZ(), 0.08, make_tuple(0.0, 0.0, 1.0));
-    }
-    //draw current graspPoint during simulation; note point is updated until
-    //a new plan is made to save comp. power
-    if(checkShowCollMesh->IsChecked() && mWorld && currentGraspPoint.sum() > 0.1){
-        //draw GREEN axes on current graspPoint
-        drawAxes(currentGraspPoint, 0.08, make_tuple(0.0, 1.0, 0.0));
-    }
     glFlush();
 }
 

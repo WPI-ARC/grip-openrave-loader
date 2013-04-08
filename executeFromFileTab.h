@@ -39,10 +39,16 @@
 #ifndef __SAMPLE_MANIPULATION_TAB__
 #define __SAMPLE_MANIPULATION_TAB__
 
+#include <robotics/Robot.h>
+
+#include <Eigen/Core>
+
 #include <vector>
+#include <list>
 #include <tuple>
+
 #include <Tabs/GRIPTab.h>
-#include "Grasper.h"
+
 namespace planning { class Controller; }
 
 class openraveTrajectory
@@ -70,12 +76,6 @@ public:
   virtual void GRIPEventSimulationStart(); 
   virtual void GRIPStateChange();
   
-  void onButtonSetStart(wxCommandEvent &evt);
-  void onButtonSetPredefStart(wxCommandEvent &evt);
-  void onButtonShowStart(wxCommandEvent &evt);
-  void onButtonDoGrasping(wxCommandEvent &evt);
-  void onButtonOpenHand(wxCommandEvent &evt);
-  void onButtonCloseHand(wxCommandEvent &evt);
   void onCheckShowCollMesh(wxCommandEvent &evt);
 
   void printDofIndexes();
@@ -96,19 +96,14 @@ public:
   void drawAxesWithOrientation(const Eigen::Matrix4d& transformation, double size, tuple<double,double,double> color);
   
   planning::Controller* mController;
-  planning::Grasper* grasper;
+//  planning::Grasper* grasper;
   wxCheckBox* checkShowCollMesh;
   kinematics::BodyNode* selectedNode;
   robotics::Robot* mRobot;
   robotics::Robot* mWheel;
   
-  std::vector<int> mArmDofs;
-  Eigen::VectorXd mStartConf;
-  Eigen::VectorXd mPredefStartConf;
-  Eigen::VectorXd fixedGrasp;
-  bool mAlreadyReplan;
   std::string eeName;  
-  Vector3d currentGraspPoint;
+  Eigen::Vector3d currentGraspPoint;
   
   DECLARE_DYNAMIC_CLASS(manipulationTab)
   DECLARE_EVENT_TABLE()
