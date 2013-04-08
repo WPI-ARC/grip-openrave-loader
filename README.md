@@ -20,4 +20,4 @@ Play example trajectory
     ./executeFromFileTab
 
 
-* [ARC Lab, Worcester Polythecnic Institute](http://http://arc.wpi.edu/)
+* [ARC Lab, Worcester Polytechnic Institute](http://http://arc.wpi.edu/)
