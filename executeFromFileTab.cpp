@@ -595,6 +595,7 @@ void executeFromFileTab::GRIPEventSimulationBeforeTimestep() {
     // instead of position-based grasping
     mRobot->setInternalForces( positionTorques );
 
+    cout << "positionTorques : " << positionTorques.transpose() << endl;
     cout << "mRobot->getPose() : " << mRobot->getPose().transpose() << endl;
     
     //check object position and replan only if it hasnt been done already to save computing power
