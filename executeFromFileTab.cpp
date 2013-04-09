@@ -471,8 +471,13 @@ void executeFromFileTab::setTrajectory()
     std::vector<int> ankleDofs(2);
     ankleDofs[0] = 27;
     ankleDofs[1] = 28;
-    const Eigen::VectorXd anklePGains = -100.0 * Eigen::VectorXd::Ones(2);
-    const Eigen::VectorXd ankleDGains = -50.0 * Eigen::VectorXd::Ones(2);
+    // Define gains for the ankle PD
+    const Eigen::VectorXd anklePGains = -1000.0 * Eigen::VectorXd::Ones(2);
+    const Eigen::VectorXd ankleDGains = -200.0 * Eigen::VectorXd::Ones(2);
+
+    // Tweeked PID gains
+    // const Eigen::VectorXd anklePGains = -100.0 * Eigen::VectorXd::Ones(2);
+    // const Eigen::VectorXd ankleDGains = -50.0 * Eigen::VectorXd::Ones(2);
 
     // Update robot's pose
     mRobot->setConfig( mActuatedDofs, mTrajs[0].positions[0] );
@@ -485,19 +490,12 @@ void executeFromFileTab::setTrajectory()
     mRobot->update();
 
     // Create trajectory; no need to shorten path here
-    //const Eigen::VectorXd maxVelocity = 0.6 * Eigen::VectorXd::Ones( mActuatedDofs.size());
-    //const Eigen::VectorXd maxAcceleration = 0.6 * Eigen::VectorXd::Ones(mActuatedDofs.size());
     const Eigen::VectorXd maxVelocity = 0.6 * Eigen::VectorXd::Ones( mActuatedDofs.size() );
     const Eigen::VectorXd maxAcceleration = 0.6 * Eigen::VectorXd::Ones(mActuatedDofs.size() );
     planning::Trajectory* trajectory = new planning::PathFollowingTrajectory( mPath, maxVelocity, maxAcceleration );
 
     std::cout << "Trajectory duration: " << trajectory->getDuration() << endl;
     mController->setTrajectory( trajectory, 0, mActuatedDofs );
-
-    // Reactivate collision of feet with floor Body_LAR Body_RAR
-    dynamics::SkeletonDynamics* ground = mWorld->getSkeleton("ground");
-    mWorld->mCollisionHandle->getCollisionChecker()->activatePair(mRobot->getNode("Body_LAR"), ground->getNode(1));
-    mWorld->mCollisionHandle->getCollisionChecker()->activatePair(mRobot->getNode("Body_RAR"), ground->getNode(1));
 
     printf("Controller time: %f \n", mWorld->mTime);
 }
