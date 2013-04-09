@@ -274,8 +274,7 @@ void executeFromFileTab::loadTrajecoryFromFile( std::string filename, openraveTr
 
     while( node != NULL )
     {
-        cout << xmlGetProp( node, xmlCharStrdup("name") ) << endl;
-
+        //cout << xmlGetProp( node, xmlCharStrdup("name") ) << endl;
         robot_and_dof rd;
 
         offsets.push_back(std::make_pair(0,rd));
@@ -287,7 +286,7 @@ void executeFromFileTab::loadTrajecoryFromFile( std::string filename, openraveTr
             return;
         }
         convert_text_to_num<int>( offsets.back().first, (char*)tmp, std::dec );
-        cout << offsets.back().first << endl;
+        //cout << offsets.back().first << endl;
 
         tmp = xmlGetProp( node, xmlCharStrdup("dof") );
         if (tmp == NULL)
@@ -296,18 +295,18 @@ void executeFromFileTab::loadTrajecoryFromFile( std::string filename, openraveTr
             return;
         }
         convert_text_to_num<int>( offsets.back().second.nb_dofs, (char*)tmp, std::dec );
-        cout << offsets.back().second.nb_dofs << endl;
+        //cout << offsets.back().second.nb_dofs << endl;
 
         std::stringstream ss( (char *)xmlGetProp( node, xmlCharStrdup("name") ) );
         std::string line;
 
         std::getline( ss, line, ' ' );
         offsets.back().second.type = line;
-        cout << offsets.back().second.type << endl;
+        //cout << offsets.back().second.type << endl;
 
         std::getline( ss, line, ' ' );
         offsets.back().second.robot_name = line;
-        cout << offsets.back().second.robot_name << endl;
+        //cout << offsets.back().second.robot_name << endl;
 
         node = node->next->next;
     }
@@ -333,7 +332,7 @@ void executeFromFileTab::loadTrajecoryFromFile( std::string filename, openraveTr
     }
     int count = 0;
     convert_text_to_num<int>( count, (char*)tmp, std::dec );
-    cout << count << endl;
+    //cout << count << endl;
 
     tmp = xmlNodeGetContent( cur );
     if (tmp == NULL)
@@ -354,20 +353,20 @@ void executeFromFileTab::loadTrajecoryFromFile( std::string filename, openraveTr
         values.push_back( val );
     }
 
-    cout << "dofs_values.size() : " << values.size() << endl;
+    cout << "values.size() : " << values.size() << endl;
 
     xmlFreeDoc(doc);
-
 
     traj.positions.resize(count);
     traj.velocities.resize(count);
     traj.deltatime.resize(count);
 
-    cout << "count : " << count << endl;
+    //cout << "count : " << count << endl;
 
     std::string robot_name = "Hubo";
 
     int ith_value=0;
+    int configuration_offset=0;
 
     for(int i=0;i<count;i++)
     {
@@ -383,7 +382,17 @@ void executeFromFileTab::loadTrajecoryFromFile( std::string filename, openraveTr
             int start = ith_value + offsets[k].first;
             int end = ith_value + offsets[k].first + offsets[k].second.nb_dofs;
 
-            ith_value += offsets[k].second.nb_dofs;
+            if( end > values.size() )
+            {
+                cout << " name : "  <<  offsets[k].second.robot_name << ", ith_value : " << ith_value << endl;
+                cout << " type : " << offsets[k].second.type << endl;
+                cout << " nb of dof : " << offsets[k].second.nb_dofs << endl;
+                cout << " end : "  <<   end << endl;
+                cout << "ERROR Reading trajectory" << endl;
+                continue;
+            }
+
+            configuration_offset += offsets[k].second.nb_dofs;
 
             if( offsets[k].second.type == "joint_values" )
             {
@@ -394,6 +403,7 @@ void executeFromFileTab::loadTrajecoryFromFile( std::string filename, openraveTr
                 {
                     traj.positions[i][l++] = values[j];
                 }
+                //cout << "position : start = " << start << " , end = " << end << endl;
                 //cout << traj.positions[i].transpose() << endl;
             }
 
@@ -406,6 +416,7 @@ void executeFromFileTab::loadTrajecoryFromFile( std::string filename, openraveTr
                 {
                     traj.velocities[i][l++] = values[j];
                 }
+                //cout << "velocities : start = " << start << " , end = " << end << endl;
             }
 
             if( offsets[k].second.type == "deltatime" )
@@ -415,6 +426,10 @@ void executeFromFileTab::loadTrajecoryFromFile( std::string filename, openraveTr
                 {
                     traj.deltatime[i] = values[l++];
                 }
+
+                ith_value += configuration_offset;
+                configuration_offset = 0;
+                //cout << "deltatime : start = " << start << " , end = " << end << endl;
             }
         }
     }
