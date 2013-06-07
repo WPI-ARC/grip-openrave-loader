@@ -41,7 +41,8 @@
 #ifndef __SAMPLE_MANIPULATION_TAB__
 #define __SAMPLE_MANIPULATION_TAB__
 
-#include <robotics/Robot.h>
+//#include <robotics/Robot.h>
+ #include <dynamics/SkeletonDynamics.h>
 
 #include <Eigen/Core>
 
@@ -50,6 +51,8 @@
 #include <tuple>
 
 #include <Tabs/GRIPTab.h>
+
+#include <dart/planning/PathFollowingTrajectory.h>
 
 namespace planning { class Controller; }
 
@@ -80,12 +83,17 @@ public:
   
   void onCheckShowCollMesh(wxCommandEvent &evt);
 
+  void initScene();
+
   void printDofIndexes();
+  void closeHuboHands( Eigen::VectorXd& q );
   void setHuboConfiguration( Eigen::VectorXd& q, bool is_position );
+
   void onButtonLoadFile(wxCommandEvent &evt);
   void onButtonPlayTraj(wxCommandEvent &evt);
 
-  void loadTrajecoryFromFile(std::string filename, openraveTrajectory& traj);
+  void loadTrajectoryFromFiles();
+  void loadTrajectoryFromFile(std::string filename, openraveTrajectory& traj);
   void setHuboJointIndicies();
   void setTrajectory();
   void setPath();
@@ -101,8 +109,11 @@ public:
 //  planning::Grasper* grasper;
   wxCheckBox* checkShowCollMesh;
   kinematics::BodyNode* selectedNode;
-  robotics::Robot* mRobot;
-  robotics::Robot* mWheel;
+  dynamics::SkeletonDynamics* mRobot;
+  dynamics::SkeletonDynamics* mWheel;
+
+  bool m_is_traj_set;
+  planning::Trajectory* mTrajectory;
   
   std::string eeName;  
   Eigen::Vector3d currentGraspPoint;

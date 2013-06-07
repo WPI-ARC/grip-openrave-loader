@@ -41,26 +41,32 @@
 #include "executeFromFileTab.h"
 
 #include <wx/wx.h>
-#include <GUI/Viewer.h>
-#include <GUI/GUI.h>
-#include <GUI/GRIPSlider.h>
-#include <GUI/GRIPFrame.h>
+#include <grip/GUI/Viewer.h>
+#include <grip/GUI/GUI.h>
+#include <grip/GUI/GRIPSlider.h>
+#include <grip/GUI/GRIPFrame.h>
 #include <iostream>
 
-#include <collision/CollisionSkeleton.h>
-#include <dynamics/SkeletonDynamics.h>
-#include <dynamics/ContactDynamics.h>
-#include <kinematics/ShapeBox.h>
-#include <kinematics/Dof.h>
-#include <kinematics/Joint.h>
-#include <planning/PathPlanner.h>
-#include <planning/PathShortener.h>
-#include <planning/PathFollowingTrajectory.h>
+#include <dart/collision/CollisionDetector.h>
+#include <dart/dynamics/SkeletonDynamics.h>
+#include <dart/dynamics/ContactDynamics.h>
+#include <dart/kinematics/ShapeBox.h>
+#include <dart/kinematics/Dof.h>
+#include <dart/kinematics/Joint.h>
+#include <dart/planning/PathPlanner.h>
+#include <dart/planning/PathShortener.h>
 #include "Controller.h"
 
-#include <libxml/parser.h>
+#include <libxml2/libxml/parser.h>
 #include <tuple>
 #include <functional>
+
+int or_indexes[] = {25,  0, 14, 13, 26,  2,  1, 16, 15,  4,
+                     3, 18, 17,  6,  5, 20, 19,  8,  7, 22,
+                    21, 10,  9, 24, 23, 12, 11, 44, 47, 53,
+                    50, 56, 29, 32, 38, 35, 41, 42, 45, 36,
+                    46, 54, 27, 30, 36, 48, 39, 28, 46, 52,
+                    49, 55, 28, 31, 37, 49, 40 };
 
 template <class T>
 bool convert_text_to_num(T& t,
@@ -118,33 +124,20 @@ executeFromFileTab::executeFromFileTab(wxWindow *parent, const wxWindowID id, co
     sizerFull->Add(ss3BoxS, 1, wxEXPAND | wxALL, 6);
     SetSizer(sizerFull);
 
-    // Additional settings
-    mController = NULL;
+    frame->DoLoad("/home/jmainpri/workspace/dart-simulation/grip-openrave-trajectory-loader/hubo-models/huboplus-and-wheel-world.urdf", false);
 
-    mTrajId = 0;
+    // Set robot name
+    initScene();
+
+    // Load trajectory
+    loadTrajectoryFromFiles();
 }
 
 /// Setup grasper when scene is loaded as well as populating arm's DoFs
 void executeFromFileTab::GRIPEventSceneLoaded() {
 
     // Find robot and wheel
-    for(int i = 0; i < mWorld->getNumSkeletons(); i++)
-    {
-        if(mWorld->getSkeleton(i)->getName() == "GolemHubo"){
-            mRobot = (robotics::Robot*) mWorld->getSkeleton(i);
-        }
-
-        if(mWorld->getSkeleton(i)->getName() == "wheel"){
-            mWheel = (robotics::Robot*) mWorld->getSkeleton(i);
-        }
-    }
-
-    mWheel->setImmobileState(true);
-
-    mActuatedDofs.resize( mRobot->getNumDofs() - 6 );
-    for (unsigned int i = 0; i < mActuatedDofs.size(); i++) {
-        mActuatedDofs[i] = i + 6;
-    }
+    initScene();
 
     // Define right arm nodes
 //    const string armNodes[] = {"Body_RSP", "Body_RSR", "Body_RSY", "Body_REP", "Body_RWY", "Body_RWP"};
@@ -155,6 +148,41 @@ void executeFromFileTab::GRIPEventSceneLoaded() {
 
     //Define palm effector name; Note: this is robot dependent!
     eeName = "Body_RWP";
+}
+
+
+void executeFromFileTab::initScene()
+{
+    // Find robot and wheel
+    for(int i = 0; i < mWorld->getNumSkeletons(); i++)
+    {
+        dynamics::SkeletonDynamics* skel = mWorld->getSkeleton(i);
+
+        if( skel->getName() == "GolemHubo" || skel->getName() == "huboplus" ){
+            mRobot = skel;
+
+            for( int j=0;j<mRobot->getNumNodes();j++)
+            {
+                cout <<  mRobot->getNode(j)->getName() << " : " <<  mRobot->getNode(j)->getMass() << endl;
+            }
+        }
+
+        if(skel->getName() == "wheel"){
+            mWheel = skel;
+        }
+    }
+
+    //mWheel->setImmobileState(true);
+
+    mActuatedDofs.resize( mRobot->getNumDofs() - 6 );
+    for (unsigned int i = 0; i < mActuatedDofs.size(); i++) {
+        mActuatedDofs[i] = i + 6;
+    }
+
+    // Additional settings
+    mController = NULL;
+
+    mTrajId = 0;
 }
 
 void executeFromFileTab::printDofIndexes()
@@ -176,6 +204,25 @@ void executeFromFileTab::printDofIndexes()
     }
 }
 
+void executeFromFileTab::closeHuboHands( Eigen::VectorXd& q )
+{
+    // THESE ARE DART INDICES
+
+    double angle = -1.3;
+
+    q( 33-6 ) = angle;
+    q( 34-6 ) = angle;
+    q( 35-6 ) = angle;
+    q( 36-6 ) = angle;
+    q( 37-6 ) = angle;
+
+    q( 38-6 ) = angle;
+    q( 39-6 ) = angle;
+    q( 40-6 ) = angle;
+    q( 41-6 ) = angle;
+    q( 42-6 ) = angle;
+}
+
 /// Setup hubo configuration
 void executeFromFileTab::setHuboConfiguration( Eigen::VectorXd& q, bool is_position ) {
 
@@ -186,21 +233,14 @@ void executeFromFileTab::setHuboConfiguration( Eigen::VectorXd& q, bool is_posit
 
     Eigen::VectorXd hubo_config(57);
 
-    int or_indexes[] = {25,  0, 14, 13, 26,  2,  1, 16, 15,  4,
-                         3, 18, 17,  6,  5, 20, 19,  8,  7, 22,
-                        21, 10,  9, 24, 23, 12, 11, 44, 47, 53,
-                        50, 56, 29, 32, 38, 35, 41, 42, 45, 36,
-                        46, 54, 27, 30, 36, 48, 39, 28, 46, 52,
-                        49, 55, 28, 31, 37, 49, 40 };
-
     for (int i = 0; i<57; i++) {
         hubo_config[i] = q[or_indexes[i]];
     }
 
     if( is_position )
     {
-        hubo_config[7] += (21.19 * M_PI / 180.0); // lsr id : 7 = 13 - 6
-        hubo_config[8] -= (21.19 * M_PI / 180.0); // rsr id : 8 = 14 - 6
+        //hubo_config[7] += (21.19 * M_PI / 180.0); // lsr id : 7 = 13 - 6
+        //hubo_config[8] -= (21.19 * M_PI / 180.0); // rsr id : 8 = 14 - 6
 
         hubo_config[37-6] = -hubo_config[37-6]; // Thumbs
         hubo_config[42-6] = -hubo_config[42-6];
@@ -221,7 +261,7 @@ bool fct_sort( std::pair<int,robot_and_dof> a, std::pair<int,robot_and_dof> b)
     return a.first < b.first;
 }
 
-void executeFromFileTab::loadTrajecoryFromFile( std::string filename, openraveTrajectory& traj )
+void executeFromFileTab::loadTrajectoryFromFile( std::string filename, openraveTrajectory& traj )
 {
     cout << "-------------------------------------------" << endl;
     cout << " load file : " << filename << endl;
@@ -328,6 +368,7 @@ void executeFromFileTab::loadTrajecoryFromFile( std::string filename, openraveTr
     if (tmp == NULL)
     {
         cout << "Error: no prop named count" << endl;
+        xmlFreeDoc(doc);
         return;
     }
     int count = 0;
@@ -338,6 +379,7 @@ void executeFromFileTab::loadTrajecoryFromFile( std::string filename, openraveTr
     if (tmp == NULL)
     {
         cout << "Error: no prop named count" << endl;
+        xmlFreeDoc(doc);
         return;
     }
 
@@ -361,9 +403,10 @@ void executeFromFileTab::loadTrajecoryFromFile( std::string filename, openraveTr
     traj.velocities.resize(count);
     traj.deltatime.resize(count);
 
-    //cout << "count : " << count << endl;
+    cout << "count : " << count << endl;
 
-    std::string robot_name = "Hubo";
+    //std::string robot_name = "Hubo";
+    std::string robot_name = "rlhuboplus";
 
     int ith_value=0;
     int configuration_offset=0;
@@ -416,6 +459,7 @@ void executeFromFileTab::loadTrajecoryFromFile( std::string filename, openraveTr
                 {
                     traj.velocities[i][l++] = values[j];
                 }
+                //cout <<  traj.velocities[i] << endl;
                 //cout << "velocities : start = " << start << " , end = " << end << endl;
             }
 
@@ -433,6 +477,8 @@ void executeFromFileTab::loadTrajecoryFromFile( std::string filename, openraveTr
             }
         }
     }
+
+    cout << "End trajectory parsing" << endl;
 }
 
 void executeFromFileTab::setHuboJointIndicies()
@@ -455,18 +501,33 @@ void executeFromFileTab::setPath()
 {
     mPath.clear();
 
-    std::vector<int> traj_indexes(5);
+// Wheel turning
+    std::vector<int> traj_indexes(7);
     traj_indexes[0] = 0;
     traj_indexes[1] = 1;
     traj_indexes[2] = 2;
     traj_indexes[3] = 1;
-    traj_indexes[4] = 3;
+    traj_indexes[4] = 2;
+    traj_indexes[5] = 1;
+    traj_indexes[6] = 3;
+
+// Waving
+//    std::vector<int> traj_indexes(2);
+//    traj_indexes[0] = 0;
+//    traj_indexes[1] = 1;
 
     for(int i=0;i<int(traj_indexes.size());i++)
     {
         for(int j=0;j<int(mTrajs[traj_indexes[i]].positions.size());j++)
         {
-            mPath.push_back( mTrajs[traj_indexes[i]].positions[j] );
+            Eigen::VectorXd q = mTrajs[traj_indexes[i]].positions[j];
+
+            if( traj_indexes[i] == 1 ) {
+                //cout << "Close hands" << endl;
+                closeHuboHands( q );
+            }
+
+            mPath.push_back( q );
         }
     }
 }
@@ -478,17 +539,25 @@ void executeFromFileTab::setTrajectory()
     }
 
     // Define PD controller gains
-    Eigen::VectorXd kI = 100.0 * Eigen::VectorXd::Ones( mRobot->getNumDofs() );
     Eigen::VectorXd kP = 500.0 * Eigen::VectorXd::Ones( mRobot->getNumDofs() );
+    Eigen::VectorXd kI = 100.0 * Eigen::VectorXd::Ones( mRobot->getNumDofs() );
     Eigen::VectorXd kD = 100.0 * Eigen::VectorXd::Ones( mRobot->getNumDofs() );
 
     // Define gains for the ankle PD
     std::vector<int> ankleDofs(2);
     ankleDofs[0] = 27;
     ankleDofs[1] = 28;
-    // Define gains for the ankle PD
-    const Eigen::VectorXd anklePGains = -1000.0 * Eigen::VectorXd::Ones(2);
-    const Eigen::VectorXd ankleDGains = -200.0 * Eigen::VectorXd::Ones(2);
+//    // Define gains for the ankle PD
+    const Eigen::VectorXd anklePGains = 1000.0 * Eigen::VectorXd::Ones(2);
+    const Eigen::VectorXd ankleDGains = 200.0 * Eigen::VectorXd::Ones(2);
+
+//    Eigen::VectorXd kP = 1000.0 * Eigen::VectorXd::Ones( mRobot->getNumDofs());
+//    Eigen::VectorXd kI = 0.01 * Eigen::VectorXd::Ones( mRobot->getNumDofs());
+//    Eigen::VectorXd kD = 100.0 * Eigen::VectorXd::Ones( mRobot->getNumDofs());
+
+//    Eigen::VectorXd kP = 0.002 * Eigen::VectorXd::Ones( mRobot->getNumDofs());
+//    Eigen::VectorXd kI = 0.00001 * Eigen::VectorXd::Ones( mRobot->getNumDofs());
+//    Eigen::VectorXd kD = 0.001 * Eigen::VectorXd::Ones( mRobot->getNumDofs());
 
     // Tweeked PID gains
     // const Eigen::VectorXd anklePGains = -100.0 * Eigen::VectorXd::Ones(2);
@@ -498,27 +567,29 @@ void executeFromFileTab::setTrajectory()
     mRobot->setConfig( mActuatedDofs, mTrajs[0].positions[0] );
 
     // Create controller
-    mController = new planning::Controller( mRobot, mActuatedDofs, kP, kD, ankleDofs, anklePGains, ankleDGains );
+    mController = new planning::Controller( mRobot, mActuatedDofs, kP, kD, kI, ankleDofs, anklePGains, ankleDGains );
 
     // CHECK
     //cout << "Offline Plan Size: " << path.size() << endl;
-    mRobot->update();
+    //mRobot->update();
 
     // Create trajectory; no need to shorten path here
-    const Eigen::VectorXd maxVelocity = 0.6 * Eigen::VectorXd::Ones( mActuatedDofs.size() );
-    const Eigen::VectorXd maxAcceleration = 0.6 * Eigen::VectorXd::Ones(mActuatedDofs.size() );
-    planning::Trajectory* trajectory = new planning::PathFollowingTrajectory( mPath, maxVelocity, maxAcceleration );
+    const Eigen::VectorXd maxVelocity = 0.8 * Eigen::VectorXd::Ones( mActuatedDofs.size() );
+    const Eigen::VectorXd maxAcceleration = 0.05 * Eigen::VectorXd::Ones(mActuatedDofs.size() );
+    mTrajectory = new planning::PathFollowingTrajectory( mPath, maxVelocity, maxAcceleration );
 
-    std::cout << "Trajectory duration: " << trajectory->getDuration() << endl;
-    mController->setTrajectory( trajectory, 0, mActuatedDofs );
-
-    printf("Controller time: %f \n", mWorld->mTime);
+    printf("Controller time: %f \n", mWorld->getTime() );
 }
 
 // Load from 4 files and show the start configuration
 // of each trajectory when pushed again
 void executeFromFileTab::onButtonLoadFile(wxCommandEvent &evt) {
 
+    loadTrajectoryFromFiles();
+}
+
+void executeFromFileTab::loadTrajectoryFromFiles()
+{
     if( mRobot == NULL )
     {
         cout << "No robot in the scene" << endl;
@@ -535,10 +606,12 @@ void executeFromFileTab::onButtonLoadFile(wxCommandEvent &evt) {
         mTrajs.clear();
         mTrajs.resize(4);
 
-        loadTrajecoryFromFile( dir + "movetraj0.txt", mTrajs[0] );
-        loadTrajecoryFromFile( dir + "movetraj1.txt", mTrajs[1] );
-        loadTrajecoryFromFile( dir + "movetraj2.txt", mTrajs[2] );
-        loadTrajecoryFromFile( dir + "movetraj3.txt", mTrajs[3] );
+        loadTrajectoryFromFile( dir + "movetraj0.txt", mTrajs[0] );
+        loadTrajectoryFromFile( dir + "movetraj1.txt", mTrajs[1] );
+
+        // comment the following for waving
+        loadTrajectoryFromFile( dir + "movetraj2.txt", mTrajs[2] );
+        loadTrajectoryFromFile( dir + "movetraj3.txt", mTrajs[3] );
 
         setHuboJointIndicies();
         setPath();
@@ -592,17 +665,47 @@ void executeFromFileTab::onCheckShowCollMesh(wxCommandEvent &evt) {
 /// Before each simulation step we set the torques the controller applies to the joints and check for plan's accuracy
 void executeFromFileTab::GRIPEventSimulationBeforeTimestep() {
 
-    Eigen::VectorXd positionTorques = mController->getTorques( mRobot->getPose(), mRobot->getQDotVector(), mWorld->mTime );
+    if( mWorld->getTime() > 1.0 && !m_is_traj_set )
+    {
+        //std::cout << "Trajectory duration: " << mTrajectory->getDuration() << endl;
+        mController->setTrajectory( mTrajectory, 0, mActuatedDofs );
+        m_is_traj_set = true;
+        mController->m_use_balance = false;
+    }
+
+    Eigen::VectorXd positionTorques = mController->getTorques( mRobot->getPose(), mRobot->getPoseVelocity(), mWorld->getTime() );
     // section here to control the fingers for force-based grasping
     // instead of position-based grasping
     mRobot->setInternalForces( positionTorques );
 
-    cout << "positionTorques : " << positionTorques.transpose() << endl;
-    cout << "mRobot->getPose() : " << mRobot->getPose().transpose() << endl;
+
+    cout << " ---------------- " << endl;
+    //cout << "positionTorques : " << positionTorques.transpose() << endl;
+//    cout << mRobot->getMinInternalForces().transpose() << endl;
+//    cout << mRobot->getMaxInternalForces().transpose() << endl;
+    cout << "Robot torque norm : " <<  positionTorques.norm() << endl;
+    cout << "Wheel internal forces : " << mWheel->getInternalForces() << endl;
+    cout << "Wheel velocity         : " << mWheel->getPoseVelocity() << endl;
+
+    double KD = -20;
+    double torque = KD * mWheel->getPoseVelocity()[0];
+    double max_torque = 100;
+
+    if( torque > max_torque )
+        torque = max_torque;
+    if( torque < -max_torque )
+        torque = -max_torque;
+
+    Eigen::VectorXd f(1); f[0] = torque;
+    mWheel->setInternalForces(f);
+
+    //cout << "mRobot->getPose() : " << mRobot->getPose().transpose() << endl;
 }
 
 /// Handle simulation events after timestep
 void executeFromFileTab::GRIPEventSimulationAfterTimestep() {
+
+    cout << "Wheel external forces : " << mWheel->getExternalForces() << endl;
 }
 
 /// Handle simulation start events
@@ -616,7 +719,7 @@ void executeFromFileTab::GRIPStateChange() {
         return;
     }
     switch (selectedTreeNode->dType) {
-    case Return_Type_Object:
+    //case Return_Type_Object:
     case Return_Type_Robot:
         selectedNode = ((kinematics::Skeleton*)selectedTreeNode->data)->getRoot();
         break;
@@ -632,6 +735,9 @@ void executeFromFileTab::GRIPStateChange() {
 
 /// Render grasp' markers such as grasping point
 void executeFromFileTab::GRIPEventRender() {
+
+    // No Draw !!!
+    return;
 
     tuple<double,double,double> red = std::make_tuple (1, 0, 0 );
 
@@ -673,6 +779,7 @@ void executeFromFileTab::drawAxes(Eigen::VectorXd origin, double size, tuple<dou
 
 /// Method to draw XYZ axes with proper orientation. Collaboration with Justin Smith
 void executeFromFileTab::drawAxesWithOrientation(const Eigen::Matrix4d& transformation, double size, tuple<double,double,double> color) {
+
     Eigen::Matrix4d basis1up, basis1down, basis2up, basis2down;
     basis1up << size, 0.0, 0.0, 0,
             0.0, size, 0.0, 0,

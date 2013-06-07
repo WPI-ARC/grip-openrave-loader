@@ -46,7 +46,7 @@
 #include <kinematics/Dof.h>
 #include <iostream>
 #include <dynamics/BodyNodeDynamics.h>
-#include <utils/UtilsMath.h>
+//#include <utils/UtilsMath.h>
 
 using namespace std;
 using namespace Eigen;
@@ -54,10 +54,11 @@ using namespace Eigen;
 namespace planning {
 
 Controller::Controller(dynamics::SkeletonDynamics* _skel, const vector<int> &_actuatedDofs,
-                       const VectorXd &_kP, const VectorXd &_kD, const vector<int> &_ankleDofs, const VectorXd &_anklePGains, const VectorXd &_ankleDGains) :
+                       const VectorXd &_kP, const VectorXd &_kD, const VectorXd &_kI, const vector<int> &_ankleDofs, const VectorXd &_anklePGains, const VectorXd &_ankleDGains) :
     mSkel(_skel),
     mKp(_kP.asDiagonal()),
     mKd(_kD.asDiagonal()),
+    mKi(_kI.asDiagonal()),
     mAnkleDofs(_ankleDofs),
     mAnklePGains(_anklePGains),
     mAnkleDGains(_ankleDGains),
@@ -78,21 +79,28 @@ Controller::Controller(dynamics::SkeletonDynamics* _skel, const vector<int> &_ac
     Vector3d com = mSkel->getWorldCOM();
     double cop = 0.0;
     mPreOffset = com[0] - cop;
+
+    m_use_balance = true;
+
+    mError = VectorXd::Zero(mSkel->getNumDofs());
 }
+
 
 Controller::~Controller(){
     //clean up to avoid mem. leaks
     delete mTrajectory;
 }
 
-void Controller::setTrajectory(const Trajectory* _trajectory, double _startTime, const std::vector<int> &_dofs) {
+void Controller::setTrajectory(const Trajectory* _trajectory, double _startTime, const std::vector<int> &_dofs)
+{
     mTrajectoryDofs = _dofs;
     mTrajectory = _trajectory;
     mStartTime = _startTime;
 }
 
 
-VectorXd Controller::getTorques(const VectorXd& _dof, const VectorXd& _dofVel, double _time) {
+VectorXd Controller::getTorques(const VectorXd& _dof, const VectorXd& _dofVel, double _time)
+{
     Eigen::VectorXd desiredDofVels = VectorXd::Zero(mSkel->getNumDofs());
 
     if(mTrajectory && _time - mStartTime >= 0.0 & _time - mStartTime <= mTrajectory->getDuration()) {
@@ -118,13 +126,73 @@ VectorXd Controller::getTorques(const VectorXd& _dof, const VectorXd& _dofVel, d
     double cop = 0.0;
     double offset = com[0] - cop;
 
-    for(unsigned int i = 0; i < mAnkleDofs.size(); i++) {
-        torques[mAnkleDofs[i]] = - mAnklePGains[i] * offset - mAnkleDGains[i] * (offset - mPreOffset) / mTimestep;
-    }
+    //cout << "offset : " << offset << endl;
 
-    mPreOffset = offset;
+    if( true /*m_use_balance || offset > 0.03*/ )
+    {
+        for(unsigned int i = 0; i < mAnkleDofs.size(); i++)
+        {
+            //cout << "torques[mAnkleDofs[" << i << " ] : " << torques[mAnkleDofs[i]] << endl;
+            torques[mAnkleDofs[i]] += mAnklePGains[i] * offset + mAnkleDGains[i] * (offset - mPreOffset) / mTimestep;
+        }
+
+        mPreOffset = offset;
+    }
 
     return mSelectionMatrix * torques;
 }
 
+/**
+VectorXd Controller::getTorques(const VectorXd& _dof, const VectorXd& _dofVel, double _time) {
+
+    Eigen::VectorXd desiredDofVels = VectorXd::Zero(mSkel->getNumDofs());
+
+//    if(mTrajectory && _time - mStartTime >= 0.0 & _time - mStartTime <= mTrajectory->getDuration()) {
+//        for(unsigned int i = 0; i < mTrajectoryDofs.size(); i++) {
+//            mDesiredDofs[mTrajectoryDofs[i]] = mTrajectory->getPosition(_time - mStartTime)[i];
+//            desiredDofVels[mTrajectoryDofs[i]] = mTrajectory->getVelocity(_time - mStartTime)[i];
+//        }
+//    }
+
+    VectorXd torques;
+    const double mTimestep = 0.001;
+
+    mError +=  mDesiredDofs -_dof;
+
+    // SPD controller
+    // J. Tan, K. Liu, G. Turk. Stable Proportional-Derivative Controllers. IEEE Computer Graphics and Applications, Vol. 31, No. 4, pp 34-44, 2011.
+    MatrixXd invM = (mSkel->getMassMatrix() + mKd * mTimestep).inverse();
+    VectorXd P = mKp * (mDesiredDofs - _dof + _dofVel *  mTimestep);
+    VectorXd D = mKd * (desiredDofVels - _dofVel );
+//    VectorXd I = mKi * ( mError );
+//    cout << "P : " << P.transpose() << endl;
+//    cout << "D : " << D.transpose() << endl;
+//    cout << "I : " << I.transpose() << endl;
+    VectorXd qddot = invM * (-mSkel->getCombinedVector() + P + D );
+    torques = P + D - mKd * qddot * mTimestep;
+//    torques = P + D + I;
+
+    for(unsigned int i = 0; i < mAnkleDofs.size(); i++) {
+        cout << "Error on : " << i << " = " << _dof[mAnkleDofs[i]] - mDesiredDofs[mAnkleDofs[i]] << endl;
+    }
+
+    if( use_balance )
+    {
+        // ankle strategy for sagital plane
+        Vector3d com = mSkel->getWorldCOM();
+        double cop = 0.0;
+        double offset = com[0] - cop;
+
+        for(unsigned int i = 0; i < mAnkleDofs.size(); i++) {
+            torques[mAnkleDofs[i]] = mAnklePGains[i] * offset + mAnkleDGains[i] * (offset - mPreOffset) / mTimestep;
+
+        }
+
+        mPreOffset = offset;
+    }
+   
+
+    return mSelectionMatrix * torques;
+}
+*/
 }

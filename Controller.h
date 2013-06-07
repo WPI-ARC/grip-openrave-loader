@@ -50,7 +50,7 @@ class Controller {
 
 public:
     Controller(dynamics::SkeletonDynamics* _skel, const std::vector<int> &_actuatedDofs,
-               const Eigen::VectorXd &_kP, const Eigen::VectorXd &_kD, const std::vector<int> &_ankleDofs, const Eigen::VectorXd &_anklePGains, const Eigen::VectorXd &_ankleDGains);
+               const Eigen::VectorXd &_kP, const Eigen::VectorXd &_kD, const Eigen::VectorXd &_kI, const std::vector<int> &_ankleDofs, const Eigen::VectorXd &_anklePGains, const Eigen::VectorXd &_ankleDGains);
     virtual ~Controller();
     
 
@@ -58,6 +58,8 @@ public:
 
     // Returns zero torque for nonactuated DOFs
     Eigen::VectorXd getTorques(const Eigen::VectorXd& _dof, const Eigen::VectorXd& _dofVel, double _time);
+
+    bool m_use_balance;
 
 protected: 
     Eigen::Vector3d evalAngMomentum(const Eigen::VectorXd& _dofVel);
@@ -68,6 +70,7 @@ protected:
     Eigen::VectorXd mDesiredDofs;
     Eigen::MatrixXd mKp;
     Eigen::MatrixXd mKd;
+    Eigen::MatrixXd mKi;
     Eigen::MatrixXd mSelectionMatrix;
     const Trajectory* mTrajectory;
     double mStartTime;
@@ -75,6 +78,8 @@ protected:
     std::vector<int> mAnkleDofs;
     Eigen::VectorXd mAnklePGains;
     Eigen::VectorXd mAnkleDGains;
+    Eigen::VectorXd mError;   
+    
 };
 
 }
