@@ -124,7 +124,7 @@ executeFromFileTab::executeFromFileTab(wxWindow *parent, const wxWindowID id, co
     sizerFull->Add(ss3BoxS, 1, wxEXPAND | wxALL, 6);
     SetSizer(sizerFull);
 
-    frame->DoLoad("/home/jmainpri/workspace/dart-simulation/grip-openrave-trajectory-loader/hubo-models/huboplus-and-wheel-world.urdf", false);
+    frame->DoLoad("/home/jmainpri/workspace/dart-simulation/grip-openrave-loader/hubo-models/huboplus-and-wheel-world.urdf", false);
 
     // Set robot name
     initScene();
@@ -583,8 +583,8 @@ void executeFromFileTab::setTrajectory()
 
 // Load from 4 files and show the start configuration
 // of each trajectory when pushed again
-void executeFromFileTab::onButtonLoadFile(wxCommandEvent &evt) {
-
+void executeFromFileTab::onButtonLoadFile(wxCommandEvent &evt)
+{
     loadTrajectoryFromFiles();
 }
 
@@ -687,9 +687,9 @@ void executeFromFileTab::GRIPEventSimulationBeforeTimestep() {
     cout << "Wheel internal forces : " << mWheel->getInternalForces() << endl;
     cout << "Wheel velocity         : " << mWheel->getPoseVelocity() << endl;
 
-    double KD = -20;
+    double KD = -100;
     double torque = KD * mWheel->getPoseVelocity()[0];
-    double max_torque = 100;
+    double max_torque = 200;
 
     if( torque > max_torque )
         torque = max_torque;
@@ -737,23 +737,43 @@ void executeFromFileTab::GRIPStateChange() {
 void executeFromFileTab::GRIPEventRender() {
 
     // No Draw !!!
-    return;
+//    return;
 
     tuple<double,double,double> red = std::make_tuple (1, 0, 0 );
 
     if( mRobot )
     {
-        Eigen::Matrix4d T = mRobot->getNode("Body_Hip")->getWorldTransform();
+        //Eigen::Matrix4d T = mRobot->getNode("Body_Hip")->getWorldTransform();
+        //Eigen::Matrix4d T = mRobot->getNode("Body_RAR")->getWorldTransform();
+        Eigen::Matrix4d T_torso = mRobot->getNode("Body_RAR")->getWorldTransform();
+        cout << "Body_RAR : " << endl << T_torso << endl;
+
+        Eigen::Matrix4d T_rar = mRobot->getNode("Body_Torso")->getWorldTransform();
+        cout << "Body_Torso : " << endl << T_rar << endl;
+
+// Offset between the right ankle and the ground
+// Body_RAR :
+//         1          0          0  0.0834363
+//         0          1          0 -0.0851953
+//         0          0          1   0.108058
+//         0          0          0          1
+
+        T_rar(2,3) = 0.0;
         // cout << "Body_Hip : " << endl << T << endl;
-        drawAxesWithOrientation( T, 0.3, red );
+        drawAxesRGB( T_rar, 0.3 );
     }
 
-//    if( mWheel )
-//    {
-//        Eigen::Matrix4d T = mWheel->getNode("handle")->getWorldTransform();
-//        //cout << "handle : " << endl << T << endl;
-//        drawAxesWithOrientation( T, 0.3, red );
-//    }
+    if( false /*mWheel*/ )
+    {
+        Eigen::Matrix4d T = mWheel->getNode("handle")->getWorldTransform();
+        cout << "handle : " << endl << T << endl;
+        drawAxesRGB( T, 0.3 );
+        Eigen::VectorXd xyz( Eigen::VectorXd::Zero(3) );
+        xyz[0] = 0.28;
+        xyz[1] = 0.02;
+        xyz[2] = 0.85;
+        drawAxes( xyz, 0.3, red  );
+    }
 
     drawAxes( Eigen::VectorXd::Zero(3), 0.3, red  );
 
@@ -761,7 +781,40 @@ void executeFromFileTab::GRIPEventRender() {
 }
 
 /// Method to draw XYZ axes
-void executeFromFileTab::drawAxes(Eigen::VectorXd origin, double size, tuple<double,double,double> color){
+void executeFromFileTab::drawAxesRGB( const Eigen::Matrix4d& transformation, double size )
+{
+    Eigen::Matrix4d basis1up, basis1down, basis2up, basis2down;
+    basis1up << size,  0.0,  0.0, 0,
+                 0.0, size,  0.0, 0,
+                 0.0,  0.0, size, 0,
+                 1.0,  1.0,  1.0, 1;
+
+    basis1down << 0.0, 0.0, 0.0, 0,
+                  0.0, 0.0, 0.0, 0,
+                  0.0, 0.0, 0.0, 0,
+                 1.0, 1.0, 1.0, 1;
+
+    basis2up = transformation * basis1up;
+    basis2down = transformation * basis1down;
+
+    glBegin(GL_LINES);
+    glColor3f(1, 0, 0);
+    glVertex3f(basis2down(0, 0), basis2down(1, 0), basis2down(2, 0));
+    glVertex3f(basis2up(0, 0), basis2up(1, 0), basis2up(2, 0));
+
+    glColor3f(0, 1, 0);
+    glVertex3f(basis2down(0, 1), basis2down(1, 1), basis2down(2, 1));
+    glVertex3f(basis2up(0, 1), basis2up(1, 1), basis2up(2, 1));
+
+    glColor3f(0, 0, 1);
+    glVertex3f(basis2down(0, 2), basis2down(1, 2), basis2down(2, 2));
+    glVertex3f(basis2up(0, 2), basis2up(1, 2), basis2up(2, 2));
+    glEnd();
+}
+
+/// Method to draw XYZ axes
+void executeFromFileTab::drawAxes( Eigen::VectorXd origin, double size, tuple<double,double,double> color )
+{
     glBegin(GL_LINES);
     glColor3f(get<0>(color), get<1>(color), get<2>(color));
     glVertex3f(origin(0) - size, origin(1), origin(2));
@@ -778,8 +831,8 @@ void executeFromFileTab::drawAxes(Eigen::VectorXd origin, double size, tuple<dou
 }
 
 /// Method to draw XYZ axes with proper orientation. Collaboration with Justin Smith
-void executeFromFileTab::drawAxesWithOrientation(const Eigen::Matrix4d& transformation, double size, tuple<double,double,double> color) {
-
+void executeFromFileTab::drawAxesWithOrientation( const Eigen::Matrix4d& transformation, double size, tuple<double,double,double> color )
+{
     Eigen::Matrix4d basis1up, basis1down, basis2up, basis2down;
     basis1up << size, 0.0, 0.0, 0,
             0.0, size, 0.0, 0,
@@ -793,7 +846,6 @@ void executeFromFileTab::drawAxesWithOrientation(const Eigen::Matrix4d& transfor
 
     basis2up = transformation * basis1up;
     basis2down = transformation * basis1down;
-
 
     glBegin(GL_LINES);
     glColor3f(get<0>(color), get<1>(color), get<2>(color));

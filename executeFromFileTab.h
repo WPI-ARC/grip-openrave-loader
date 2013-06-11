@@ -104,6 +104,7 @@ public:
 
   void drawAxes(Eigen::VectorXd origin, double size, tuple<double,double,double> color);
   void drawAxesWithOrientation(const Eigen::Matrix4d& transformation, double size, tuple<double,double,double> color);
+  void drawAxesRGB( const Eigen::Matrix4d& transformation, double size );
   
   planning::Controller* mController;
 //  planning::Grasper* grasper;
