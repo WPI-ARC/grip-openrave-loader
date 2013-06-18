@@ -45,7 +45,7 @@
 #include <grip/GUI/GUI.h>
 #include <grip/GUI/GRIPSlider.h>
 #include <grip/GUI/GRIPFrame.h>
-#include <iostream>
+
 
 #include <dart/collision/CollisionDetector.h>
 #include <dart/dynamics/SkeletonDynamics.h>
@@ -60,13 +60,27 @@
 #include <libxml2/libxml/parser.h>
 #include <tuple>
 #include <functional>
+#include <fstream>
+#include <iostream>
 
-int or_indexes[] = {25,  0, 14, 13, 26,  2,  1, 16, 15,  4,
+int or_indices[] = {25,  0, 14, 13, 26,  2,  1, 16, 15,  4,
                      3, 18, 17,  6,  5, 20, 19,  8,  7, 22,
                     21, 10,  9, 24, 23, 12, 11, 44, 47, 53,
                     50, 56, 29, 32, 38, 35, 41, 42, 45, 36,
                     46, 54, 27, 30, 36, 48, 39, 28, 46, 52,
                     49, 55, 28, 31, 37, 49, 40 };
+
+int robot_sim_indices[] = {
+    0, 4, 2, 7, 11, 15, 19, 29,
+    -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1,
+    3, 8, 18, 16, 20, 24,
+    -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1,
+    1, 11, 9, 13, 17, 21,
+    25, 6, 10, 14, 18, 22, 26 };
 
 template <class T>
 bool convert_text_to_num(T& t,
@@ -92,6 +106,7 @@ enum DynamicSimulationTabEvents {
     id_button_CloseHand,
     id_button_LoadFile,
     id_button_PlayTraj,
+    id_button_SaveToRobotSim,
     id_label_Inst,
     id_checkbox_showcollmesh,
 };
@@ -101,6 +116,7 @@ using namespace std;
 BEGIN_EVENT_TABLE(executeFromFileTab, wxPanel)
 EVT_COMMAND(id_button_LoadFile, wxEVT_COMMAND_BUTTON_CLICKED, executeFromFileTab::onButtonLoadFile)
 EVT_COMMAND(id_button_PlayTraj, wxEVT_COMMAND_BUTTON_CLICKED, executeFromFileTab::onButtonPlayTraj)
+EVT_COMMAND(id_button_SaveToRobotSim, wxEVT_COMMAND_BUTTON_CLICKED, executeFromFileTab::onButtonSaveToRobotSimFormat)
 EVT_CHECKBOX(id_checkbox_showcollmesh, executeFromFileTab::onCheckShowCollMesh)
 END_EVENT_TABLE() 
 IMPLEMENT_DYNAMIC_CLASS(executeFromFileTab, GRIPTab)
@@ -119,6 +135,7 @@ executeFromFileTab::executeFromFileTab(wxWindow *parent, const wxWindowID id, co
     // Execute from file
     ss3BoxS->Add(new wxButton(this, id_button_LoadFile, wxT("Load File")), 0, wxALL, 1);
     ss3BoxS->Add(new wxButton(this, id_button_PlayTraj, wxT("Play Trajectory")), 0, wxALL, 1);
+    ss3BoxS->Add(new wxButton(this, id_button_SaveToRobotSim, wxT("Save to File")), 0, wxALL, 1);
 
     // Add the boxes to their respective sizers
     sizerFull->Add(ss3BoxS, 1, wxEXPAND | wxALL, 6);
@@ -185,7 +202,7 @@ void executeFromFileTab::initScene()
     mTrajId = 0;
 }
 
-void executeFromFileTab::printDofIndexes()
+void executeFromFileTab::printDofIndices()
 {
     if(mRobot == NULL){
         cout << "No robot in the scene" << endl;
@@ -234,7 +251,7 @@ void executeFromFileTab::setHuboConfiguration( Eigen::VectorXd& q, bool is_posit
     Eigen::VectorXd hubo_config(57);
 
     for (int i = 0; i<57; i++) {
-        hubo_config[i] = q[or_indexes[i]];
+        hubo_config[i] = q[or_indices[i]];
     }
 
     if( is_position )
@@ -655,6 +672,40 @@ void executeFromFileTab::onButtonPlayTraj(wxCommandEvent &evt)
         viewer->DrawGLScene();
         usleep( 25000 );
     }
+}
+
+void executeFromFileTab::onButtonSaveToRobotSimFormat(wxCommandEvent &evt)
+{
+    std::list<Eigen::VectorXd>::const_iterator it;
+    std::ofstream s;
+    std::string filename("robot_commands.log");
+    s.open( filename.c_str() );
+
+    cout << "Opening save file : " << filename << endl;
+
+    for( it=mPath.begin(); it != mPath.end(); it++ )
+    {
+        Eigen::VectorXd q(Eigen::VectorXd::Zero((*it).size()+6));
+
+        for( int i=0; i<q.size()-6; i++ )
+        {
+            if( robot_sim_indices[i] != -1 )
+            {
+                q(i+6) = (*it)(robot_sim_indices[i]);
+            }
+        }
+
+        s << q.size() << "\t";
+
+        for( int i=0; i<q.size(); i++ )
+        {
+            s << q(i) << " ";
+        }
+
+        s << endl;
+    }
+
+    cout << "Trajectory Saved!!!" << endl;
 }
 
 /// Handle event for drawing grasp markers

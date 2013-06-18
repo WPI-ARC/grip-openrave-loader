@@ -1,67 +1,67 @@
 DART -------------------------------------------------------------------------
 ------------------------------------------------------------------------------
-Dof(0) : floatingX , Child : Body_Torso
-Dof(1) : floatingY , Child : Body_Torso
-Dof(2) : floatingZ , Child : Body_Torso
-Dof(3) : floatingYaw , Child : Body_Torso
-Dof(4) : floatingPitch , Child : Body_Torso
-Dof(5) : floatingRoll , Child : Body_Torso
-Dof(6) : HNR , Parent : Body_Torso , Child : Body_HNR
-Dof(7) : HPY , Parent : Body_Torso , Child : Body_Hip
-Dof(8) : LSP , Parent : Body_Torso , Child : Body_LSP
-Dof(9) : RSP , Parent : Body_Torso , Child : Body_RSP
-Dof(10) : HNP , Parent : Body_HNR , Child : Body_HNP
-Dof(11) : LHY , Parent : Body_Hip , Child : Body_LHY
-Dof(12) : RHY , Parent : Body_Hip , Child : Body_RHY
-Dof(13) : LSR , Parent : Body_LSP , Child : Body_LSR
-Dof(14) : RSR , Parent : Body_RSP , Child : Body_RSR
-Dof(15) : LHR , Parent : Body_LHY , Child : Body_LHR
-Dof(16) : RHR , Parent : Body_RHY , Child : Body_RHR
-Dof(17) : LSY , Parent : Body_LSR , Child : Body_LSY
-Dof(18) : RSY , Parent : Body_RSR , Child : Body_RSY
-Dof(19) : LHP , Parent : Body_LHR , Child : Body_LHP
-Dof(20) : RHP , Parent : Body_RHR , Child : Body_RHP
-Dof(21) : LEP , Parent : Body_LSY , Child : Body_LEP
-Dof(22) : REP , Parent : Body_RSY , Child : Body_REP
-Dof(23) : LKP , Parent : Body_LHP , Child : Body_LKP
-Dof(24) : RKP , Parent : Body_RHP , Child : Body_RKP
-Dof(25) : LWY , Parent : Body_LEP , Child : Body_LWY
-Dof(26) : RWY , Parent : Body_REP , Child : Body_RWY
-Dof(27) : LAP , Parent : Body_LKP , Child : Body_LAP
-Dof(28) : RAP , Parent : Body_RKP , Child : Body_RAP
-Dof(29) : LWP , Parent : Body_LWY , Child : Body_LWP
-Dof(30) : RWP , Parent : Body_RWY , Child : Body_RWP
-Dof(31) : LAR , Parent : Body_LAP , Child : Body_LAR
-Dof(32) : RAR , Parent : Body_RAP , Child : Body_RAR
-Dof(33) : leftIndexKnuckle1 , Parent : Body_LWP , Child : leftIndexProximal
-Dof(34) : leftMiddleKnuckle1 , Parent : Body_LWP , Child : leftMiddleProximal
-Dof(35) : leftPinkyKnuckle1 , Parent : Body_LWP , Child : leftPinkyProximal
-Dof(36) : leftRingKnuckle1 , Parent : Body_LWP , Child : leftRingProximal
-Dof(37) : leftThumbKnuckle1 , Parent : Body_LWP , Child : leftThumbProximal
-Dof(38) : rightIndexKnuckle1 , Parent : Body_RWP , Child : rightIndexProximal
-Dof(39) : rightMiddleKnuckle1 , Parent : Body_RWP , Child : rightMiddleProximal
-Dof(40) : rightPinkyKnuckle1 , Parent : Body_RWP , Child : rightPinkyProximal
-Dof(41) : rightRingKnuckle1 , Parent : Body_RWP , Child : rightRingProximal
-Dof(42) : rightThumbKnuckle1 , Parent : Body_RWP , Child : rightThumbProximal
-Dof(43) : Knuckle221 , Parent : leftIndexProximal , Child : leftIndexMedial
-Dof(44) : Knuckle218 , Parent : leftMiddleProximal , Child : leftMiddleMedial
-Dof(45) : Knuckle212 , Parent : leftPinkyProximal , Child : leftPinkyMedial
-Dof(46) : Knuckle215 , Parent : leftRingProximal , Child : leftRingMedial
-Dof(47) : Knuckle29 , Parent : leftThumbProximal , Child : leftThumbMedial
-Dof(48) : Knuckle2 , Parent : rightIndexProximal , Child : rightIndexMedial
-Dof(49) : Knuckle239 , Parent : rightMiddleProximal , Child : rightMiddleMedial
-Dof(50) : Knuckle233 , Parent : rightPinkyProximal , Child : rightPinkyMedial
-Dof(51) : Knuckle236 , Parent : rightRingProximal , Child : rightRingMedial
-Dof(52) : Knuckle230 , Parent : rightThumbProximal , Child : rightThumbMedial
-Dof(53) : Knuckle322 , Parent : leftIndexMedial , Child : leftIndexDistal
-Dof(54) : Knuckle319 , Parent : leftMiddleMedial , Child : leftMiddleDistal
-Dof(55) : Knuckle313 , Parent : leftPinkyMedial , Child : leftPinkyDistal
-Dof(56) : Knuckle316 , Parent : leftRingMedial , Child : leftRingDistal
-Dof(57) : Knuckle310 , Parent : leftThumbMedial , Child : leftThumbDistal
-Dof(58) : Knuckle3 , Parent : rightIndexMedial , Child : rightIndexDistal
-Dof(59) : Knuckle340 , Parent : rightMiddleMedial , Child : rightMiddleDistal
-Dof(60) : Knuckle334 , Parent : rightPinkyMedial , Child : rightPinkyDistal
-Dof(61) : Knuckle337 , Parent : rightRingMedial , Child : rightRingDistal
-Dof(62) : Knuckle331 , Parent : rightThumbMedial , Child : rightThumbDistal
+-1 : Dof(0) : floatingX , Child : Body_Torso
+-1 : Dof(1) : floatingY , Child : Body_Torso
+-1 : Dof(2) : floatingZ , Child : Body_Torso
+-1 : Dof(3) : floatingYaw , Child : Body_Torso
+-1 : Dof(4) : floatingPitch , Child : Body_Torso
+-1 : Dof(5) : floatingRoll , Child : Body_Torso
+0 : Dof(6) : HNR , Parent : Body_Torso , Child : Body_HNR
+1 : Dof(7) : HPY , Parent : Body_Torso , Child : Body_Hip
+2 : Dof(8) : LSP , Parent : Body_Torso , Child : Body_LSP
+3 : Dof(9) : RSP , Parent : Body_Torso , Child : Body_RSP
+4 : Dof(10) : HNP , Parent : Body_HNR , Child : Body_HNP
+5 : Dof(11) : LHY , Parent : Body_Hip , Child : Body_LHY
+6 : Dof(12) : RHY , Parent : Body_Hip , Child : Body_RHY
+7 : Dof(13) : LSR , Parent : Body_LSP , Child : Body_LSR
+8 : Dof(14) : RSR , Parent : Body_RSP , Child : Body_RSR
+9 : Dof(15) : LHR , Parent : Body_LHY , Child : Body_LHR
+10 : Dof(16) : RHR , Parent : Body_RHY , Child : Body_RHR
+11 : Dof(17) : LSY , Parent : Body_LSR , Child : Body_LSY
+12 : Dof(18) : RSY , Parent : Body_RSR , Child : Body_RSY
+13 : Dof(19) : LHP , Parent : Body_LHR , Child : Body_LHP
+14 : Dof(20) : RHP , Parent : Body_RHR , Child : Body_RHP
+15 : Dof(21) : LEP , Parent : Body_LSY , Child : Body_LEP
+16 : Dof(22) : REP , Parent : Body_RSY , Child : Body_REP
+17 : Dof(23) : LKP , Parent : Body_LHP , Child : Body_LKP
+18 : Dof(24) : RKP , Parent : Body_RHP , Child : Body_RKP
+19 : Dof(25) : LWY , Parent : Body_LEP , Child : Body_LWY
+20 : Dof(26) : RWY , Parent : Body_REP , Child : Body_RWY
+21 : Dof(27) : LAP , Parent : Body_LKP , Child : Body_LAP
+22 : Dof(28) : RAP , Parent : Body_RKP , Child : Body_RAP
+23 : Dof(29) : LWP , Parent : Body_LWY , Child : Body_LWP
+24 : Dof(30) : RWP , Parent : Body_RWY , Child : Body_RWP
+25 : Dof(31) : LAR , Parent : Body_LAP , Child : Body_LAR
+26 : Dof(32) : RAR , Parent : Body_RAP , Child : Body_RAR
+27 : Dof(33) : leftIndexKnuckle1 , Parent : Body_LWP , Child : leftIndexProximal
+28 : Dof(34) : leftMiddleKnuckle1 , Parent : Body_LWP , Child : leftMiddleProximal
+29 : Dof(35) : leftPinkyKnuckle1 , Parent : Body_LWP , Child : leftPinkyProximal
+30 : Dof(36) : leftRingKnuckle1 , Parent : Body_LWP , Child : leftRingProximal
+31 : Dof(37) : leftThumbKnuckle1 , Parent : Body_LWP , Child : leftThumbProximal
+32 : Dof(38) : rightIndexKnuckle1 , Parent : Body_RWP , Child : rightIndexProximal
+33 : Dof(39) : rightMiddleKnuckle1 , Parent : Body_RWP , Child : rightMiddleProximal
+34 : Dof(40) : rightPinkyKnuckle1 , Parent : Body_RWP , Child : rightPinkyProximal
+35 : Dof(41) : rightRingKnuckle1 , Parent : Body_RWP , Child : rightRingProximal
+36 : Dof(42) : rightThumbKnuckle1 , Parent : Body_RWP , Child : rightThumbProximal
+37 : Dof(43) : Knuckle221 , Parent : leftIndexProximal , Child : leftIndexMedial
+38 : Dof(44) : Knuckle218 , Parent : leftMiddleProximal , Child : leftMiddleMedial
+39 : Dof(45) : Knuckle212 , Parent : leftPinkyProximal , Child : leftPinkyMedial
+40 : Dof(46) : Knuckle215 , Parent : leftRingProximal , Child : leftRingMedial
+41 : Dof(47) : Knuckle29 , Parent : leftThumbProximal , Child : leftThumbMedial
+42 : Dof(48) : Knuckle2 , Parent : rightIndexProximal , Child : rightIndexMedial
+43 : Dof(49) : Knuckle239 , Parent : rightMiddleProximal , Child : rightMiddleMedial
+44 : Dof(50) : Knuckle233 , Parent : rightPinkyProximal , Child : rightPinkyMedial
+45 : Dof(51) : Knuckle236 , Parent : rightRingProximal , Child : rightRingMedial
+46 : Dof(52) : Knuckle230 , Parent : rightThumbProximal , Child : rightThumbMedial
+47 : Dof(53) : Knuckle322 , Parent : leftIndexMedial , Child : leftIndexDistal
+48 : Dof(54) : Knuckle319 , Parent : leftMiddleMedial , Child : leftMiddleDistal
+49 : Dof(55) : Knuckle313 , Parent : leftPinkyMedial , Child : leftPinkyDistal
+50 : Dof(56) : Knuckle316 , Parent : leftRingMedial , Child : leftRingDistal
+51 : Dof(57) : Knuckle310 , Parent : leftThumbMedial , Child : leftThumbDistal
+52 : Dof(58) : Knuckle3 , Parent : rightIndexMedial , Child : rightIndexDistal
+53 : Dof(59) : Knuckle340 , Parent : rightMiddleMedial , Child : rightMiddleDistal
+54 : Dof(60) : Knuckle334 , Parent : rightPinkyMedial , Child : rightPinkyDistal
+55 : Dof(61) : Knuckle337 , Parent : rightRingMedial , Child : rightRingDistal
+56 : Dof(62) : Knuckle331 , Parent : rightThumbMedial , Child : rightThumbDistal
 
 

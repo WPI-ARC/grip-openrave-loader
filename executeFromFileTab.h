@@ -85,12 +85,13 @@ public:
 
   void initScene();
 
-  void printDofIndexes();
+  void printDofIndices();
   void closeHuboHands( Eigen::VectorXd& q );
   void setHuboConfiguration( Eigen::VectorXd& q, bool is_position );
 
   void onButtonLoadFile(wxCommandEvent &evt);
   void onButtonPlayTraj(wxCommandEvent &evt);
+  void onButtonSaveToRobotSimFormat(wxCommandEvent &evt);
 
   void loadTrajectoryFromFiles();
   void loadTrajectoryFromFile(std::string filename, openraveTrajectory& traj);
